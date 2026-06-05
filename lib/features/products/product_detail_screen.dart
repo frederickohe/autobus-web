@@ -1,0 +1,480 @@
+import 'package:autobus/barrel.dart';
+
+class ProductDetailScreen extends StatefulWidget {
+  final String productId;
+  final String? initialName;
+
+  const ProductDetailScreen({
+    super.key,
+    required this.productId,
+    this.initialName,
+  });
+
+  @override
+  State<ProductDetailScreen> createState() => _ProductDetailScreenState();
+}
+
+class _ProductDetailScreenState extends State<ProductDetailScreen> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _descriptionCtrl;
+  late final TextEditingController _priceCtrl;
+  late final TextEditingController _categoryCtrl;
+  late final TextEditingController _conditionCtrl;
+  late final TextEditingController _stockCtrl;
+  late final TextEditingController _photoCtrl;
+  late final TextEditingController _linkCtrl;
+
+  bool _loading = true;
+  bool _saving = false;
+  String? _loadError;
+  String? _inventoryId;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl = TextEditingController();
+    _descriptionCtrl = TextEditingController();
+    _priceCtrl = TextEditingController();
+    _categoryCtrl = TextEditingController();
+    _conditionCtrl = TextEditingController();
+    _stockCtrl = TextEditingController();
+    _photoCtrl = TextEditingController();
+    _linkCtrl = TextEditingController();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _descriptionCtrl.dispose();
+    _priceCtrl.dispose();
+    _categoryCtrl.dispose();
+    _conditionCtrl.dispose();
+    _stockCtrl.dispose();
+    _photoCtrl.dispose();
+    _linkCtrl.dispose();
+    super.dispose();
+  }
+
+  void _populateForm(Map<String, dynamic> p) {
+    _inventoryId = (p['inventory_id'] ?? '').toString();
+    _nameCtrl.text = (p['name'] ?? '').toString();
+    _descriptionCtrl.text = (p['description'] ?? '').toString();
+    final price = p['price'];
+    if (price is num) {
+      _priceCtrl.text = price == price.roundToDouble()
+          ? price.toStringAsFixed(0)
+          : price.toString();
+    } else {
+      _priceCtrl.text = price?.toString() ?? '';
+    }
+    _categoryCtrl.text = (p['category'] ?? '').toString();
+    _conditionCtrl.text = (p['condition'] ?? '').toString();
+    final stock = p['number_in_stock'];
+    _stockCtrl.text = stock == null ? '' : stock.toString();
+    _photoCtrl.text = (p['photo'] ?? '').toString();
+    _linkCtrl.text = (p['link'] ?? '').toString();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _loadError = null;
+    });
+    try {
+      final api = context.read<ApiService>();
+      final p = await api.getProduct(widget.productId);
+      if (!mounted) return;
+      _populateForm(p);
+      setState(() => _loading = false);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = e.toString().replaceFirst('Exception: ', '');
+        _loading = false;
+      });
+    }
+  }
+
+  InputDecoration _fieldDecoration(String label, {String? hint}) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      labelStyle: GoogleFonts.outfit(
+        color: Colors.white.withValues(alpha: 0.7),
+        fontSize: 13,
+      ),
+      hintStyle: GoogleFonts.outfit(
+        color: Colors.white.withValues(alpha: 0.35),
+        fontSize: 13,
+      ),
+      filled: true,
+      fillColor: Colors.white.withValues(alpha: 0.06),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(
+          color: const Color(0xFF3F1163).withValues(alpha: 0.8),
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Color(0xFFA855F7)),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    );
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final price = double.tryParse(_priceCtrl.text.trim());
+    if (price == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a valid price')),
+      );
+      return;
+    }
+
+    int? stock;
+    final stockText = _stockCtrl.text.trim();
+    if (stockText.isNotEmpty) {
+      stock = int.tryParse(stockText);
+      if (stock == null || stock < 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Stock must be a non-negative number')),
+        );
+        return;
+      }
+    }
+
+    setState(() => _saving = true);
+    try {
+      final api = context.read<ApiService>();
+      await api.updateProduct(
+        widget.productId,
+        name: _nameCtrl.text.trim(),
+        description: _descriptionCtrl.text,
+        price: price,
+        category: _categoryCtrl.text,
+        condition: _conditionCtrl.text.trim(),
+        numberInStock: stock,
+        photo: _photoCtrl.text.trim().isNotEmpty ? _photoCtrl.text.trim() : null,
+        link: _linkCtrl.text,
+      );
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Product saved', style: GoogleFonts.outfit()),
+        ),
+      );
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+        ),
+      );
+    }
+  }
+
+  Future<void> _confirmDelete() async {
+    final name = _nameCtrl.text.trim().isNotEmpty
+        ? _nameCtrl.text.trim()
+        : 'this product';
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E0A32),
+        title: Text(
+          'Delete product?',
+          style: GoogleFonts.outfit(color: Colors.white),
+        ),
+        content: Text(
+          'Remove "$name" permanently? This cannot be undone.',
+          style: GoogleFonts.outfit(
+            color: Colors.white.withValues(alpha: 0.8),
+            fontSize: 14,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel', style: GoogleFonts.outfit(color: Colors.white70)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              'Delete',
+              style: GoogleFonts.outfit(color: Colors.redAccent),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+
+    setState(() => _saving = true);
+    try {
+      final api = context.read<ApiService>();
+      await api.deleteProduct(widget.productId);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Product deleted', style: GoogleFonts.outfit())),
+      );
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final title = widget.initialName?.trim().isNotEmpty == true
+        ? widget.initialName!.trim()
+        : 'Product';
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          const DecoratedBox(
+            decoration: ManageScreenStyle.homeDashboardBodyDecoration,
+          ),
+          SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 18, 24, 0),
+                  child: Row(
+                    children: [
+                      const ManageScreenBackButton(),
+                      const SizedBox(width: 18),
+                      Expanded(
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: ManageScreenStyle.headerTitleStyle(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(child: _buildBody()),
+                if (!_loading && _loadError == null) _buildActions(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_loading) {
+      return const Center(child: AutobusLoadingIndicator(size: 32));
+    }
+    if (_loadError != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                _loadError!,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.outfit(
+                  color: Colors.white.withValues(alpha: 0.75),
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: _load,
+                child: Text(
+                  'Retry',
+                  style: GoogleFonts.outfit(color: const Color(0xFFA855F7)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Form(
+      key: _formKey,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+        children: [
+          if (_inventoryId != null && _inventoryId!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Text(
+                'SKU: $_inventoryId',
+                style: GoogleFonts.outfit(
+                  color: Colors.white.withValues(alpha: 0.45),
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          if (_photoCtrl.text.trim().isNotEmpty) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Image.network(
+                  _photoCtrl.text.trim(),
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    color: const Color(0xFF1E0A32),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.image_not_supported_outlined,
+                      color: Colors.white.withValues(alpha: 0.4),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+          _textField(
+            controller: _nameCtrl,
+            label: 'Name',
+            validator: (v) =>
+                (v == null || v.trim().isEmpty) ? 'Name is required' : null,
+          ),
+          const SizedBox(height: 14),
+          _textField(
+            controller: _descriptionCtrl,
+            label: 'Description',
+            maxLines: 3,
+          ),
+          const SizedBox(height: 14),
+          _textField(
+            controller: _priceCtrl,
+            label: 'Price',
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            validator: (v) {
+              if (v == null || v.trim().isEmpty) return 'Price is required';
+              if (double.tryParse(v.trim()) == null) return 'Invalid price';
+              return null;
+            },
+          ),
+          const SizedBox(height: 14),
+          _textField(controller: _categoryCtrl, label: 'Category'),
+          const SizedBox(height: 14),
+          _textField(
+            controller: _conditionCtrl,
+            label: 'Condition',
+            validator: (v) => (v == null || v.trim().isEmpty)
+                ? 'Condition is required'
+                : null,
+          ),
+          const SizedBox(height: 14),
+          _textField(
+            controller: _stockCtrl,
+            label: 'Stock quantity',
+            keyboardType: TextInputType.number,
+          ),
+          const SizedBox(height: 14),
+          _textField(
+            controller: _photoCtrl,
+            label: 'Photo URL',
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 14),
+          _textField(controller: _linkCtrl, label: 'Product link'),
+        ],
+      ),
+    );
+  }
+
+  Widget _textField({
+    required TextEditingController controller,
+    required String label,
+    String? Function(String?)? validator,
+    TextInputType? keyboardType,
+    int maxLines = 1,
+    void Function(String)? onChanged,
+  }) {
+    return TextFormField(
+      controller: controller,
+      validator: validator,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      onChanged: onChanged,
+      style: GoogleFonts.outfit(color: Colors.white, fontSize: 14),
+      cursorColor: const Color(0xFFA855F7),
+      decoration: _fieldDecoration(label),
+    );
+  }
+
+  Widget _buildActions() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          FilledButton(
+            onPressed: _saving ? null : _save,
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFA855F7),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            child: _saving
+                ? const AutobusLoadingIndicator(size: 22)
+                : Text(
+                    'Save changes',
+                    style: GoogleFonts.outfit(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton(
+            onPressed: _saving ? null : _confirmDelete,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.redAccent,
+              side: BorderSide(color: Colors.redAccent.withValues(alpha: 0.7)),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+            child: Text(
+              'Delete product',
+              style: GoogleFonts.outfit(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

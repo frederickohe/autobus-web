@@ -1,0 +1,320 @@
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:autobus/features/home/services/api_service.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+/// Staged image for products chat (local path or web bytes until send).
+class ProductStagingSlot {
+  String? localPath;
+  Uint8List? previewBytes;
+  String? pickedName;
+
+  bool get isEmpty =>
+      (previewBytes == null || previewBytes!.isEmpty) &&
+      (localPath == null || localPath!.trim().isEmpty);
+
+  void clear() {
+    localPath = null;
+    previewBytes = null;
+    pickedName = null;
+  }
+}
+
+/// Uploads non-empty [slots] to `product-images` storage; preserves order.
+Future<List<String>> uploadStagedProductImageUrls(
+  ApiService api,
+  List<ProductStagingSlot> slots,
+) async {
+  final urls = <String>[];
+  for (final slot in slots) {
+    if (slot.isEmpty) continue;
+    if (kIsWeb) {
+      final bytes = slot.previewBytes;
+      if (bytes == null || bytes.isEmpty) continue;
+      final url = await api.uploadFileBytes(
+        fileBytes: bytes,
+        filename: slot.pickedName ?? 'product.jpg',
+        storageFolder: ApiService.productImageStorageFolder,
+      );
+      urls.add(url);
+    } else {
+      final path = slot.localPath;
+      if (path == null || path.isEmpty) continue;
+      final file = File(path);
+      if (!await file.exists()) continue;
+      final url = await api.uploadFile(
+        file: file,
+        filename: slot.pickedName,
+        storageFolder: ApiService.productImageStorageFolder,
+      );
+      urls.add(url);
+    }
+  }
+  return urls;
+}
+
+/// Horizontal image slots for the products AutoBus chat (light background).
+class ProductChatImageStrip extends StatelessWidget {
+  static const double thumbW = 88;
+  static const double thumbH = 102;
+
+  final List<ProductStagingSlot> slots;
+  final ValueChanged<int> onSlotTap;
+  final VoidCallback onAddSlot;
+  final bool busy;
+  final int maxSlots;
+
+  const ProductChatImageStrip({
+    super.key,
+    required this.slots,
+    required this.onSlotTap,
+    required this.onAddSlot,
+    this.busy = false,
+    this.maxSlots = 8,
+  });
+
+  bool get _hasEmptySlot => slots.any((s) => s.isEmpty);
+
+  @override
+  Widget build(BuildContext context) {
+    const purple = Color(0xFF2A1447);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Product photos',
+          style: GoogleFonts.montserrat(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: purple.withValues(alpha: 0.85),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Tap to add. Images upload when you send your message.',
+          style: GoogleFonts.montserrat(
+            fontSize: 10,
+            fontWeight: FontWeight.w400,
+            color: purple.withValues(alpha: 0.55),
+          ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: thumbH + 4,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              for (var i = 0; i < slots.length; i++) ...[
+                if (i > 0) const SizedBox(width: 8),
+                _Thumb(
+                  slot: slots[i],
+                  width: thumbW,
+                  height: thumbH,
+                  onTap: busy ? null : () => onSlotTap(i),
+                ),
+              ],
+              if (!_hasEmptySlot && slots.length < maxSlots) ...[
+                const SizedBox(width: 8),
+                _AddThumb(
+                  width: thumbW,
+                  height: thumbH,
+                  onTap: busy ? null : onAddSlot,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _Thumb extends StatelessWidget {
+  final ProductStagingSlot slot;
+  final double width;
+  final double height;
+  final VoidCallback? onTap;
+
+  const _Thumb({
+    required this.slot,
+    required this.width,
+    required this.height,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const purple = Color(0xFF2A1447);
+    final empty = slot.isEmpty;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: purple.withValues(alpha: 0.22)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: empty
+            ? Icon(
+                Icons.add_photo_alternate_outlined,
+                color: purple.withValues(alpha: 0.45),
+                size: 30,
+              )
+            : _preview(),
+      ),
+    );
+  }
+
+  Widget _preview() {
+    final bytes = slot.previewBytes;
+    if (bytes != null && bytes.isNotEmpty) {
+      return Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true);
+    }
+    final path = slot.localPath;
+    if (!kIsWeb && path != null && path.isNotEmpty && File(path).existsSync()) {
+      return Image.file(File(path), fit: BoxFit.cover, gaplessPlayback: true);
+    }
+    return Icon(Icons.broken_image_outlined, color: Colors.black26, size: 28);
+  }
+}
+
+class _AddThumb extends StatelessWidget {
+  final double width;
+  final double height;
+  final VoidCallback? onTap;
+
+  const _AddThumb({
+    required this.width,
+    required this.height,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const purple = Color(0xFF2A1447);
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: purple.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: purple.withValues(alpha: 0.2)),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add_circle_outline, size: 28, color: purple.withValues(alpha: 0.75)),
+            const SizedBox(height: 4),
+            Text(
+              'Add',
+              style: GoogleFonts.montserrat(fontSize: 9, color: purple.withValues(alpha: 0.65)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Pick an image into [slots[index]]; shows snackbars on failure.
+Future<void> pickProductImageForSlot(
+  BuildContext context,
+  List<ProductStagingSlot> slots,
+  int index,
+  StateSetter setState,
+) async {
+  final result = await FilePicker.platform.pickFiles(
+    type: FileType.custom,
+    allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp'],
+    allowMultiple: false,
+    withData: kIsWeb,
+  );
+  if (!context.mounted || result == null || result.files.isEmpty) return;
+
+  final file = result.files.single;
+  final path = file.path?.trim();
+  final name = file.name.trim().isNotEmpty ? file.name : 'image.jpg';
+
+  if (kIsWeb) {
+    final bytes = file.bytes;
+    if (bytes == null || bytes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to load selected image.')),
+      );
+      return;
+    }
+    setState(() {
+      slots[index]
+        ..previewBytes = bytes
+        ..localPath = null
+        ..pickedName = name;
+    });
+    return;
+  }
+
+  if (path == null || path.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Unable to open selected image.')),
+    );
+    return;
+  }
+
+  Uint8List? bytes = file.bytes;
+  if (bytes == null || bytes.isEmpty) {
+    try {
+      bytes = await File(path).readAsBytes();
+    } catch (_) {
+      bytes = null;
+    }
+  }
+
+  setState(() {
+    slots[index]
+      ..localPath = path
+      ..previewBytes = (bytes != null && bytes.isNotEmpty) ? bytes : null
+      ..pickedName = name;
+  });
+}
+
+Future<void> showProductSlotActionsSheet(
+  BuildContext context,
+  VoidCallback onReplace,
+  VoidCallback onRemove,
+) async {
+  final action = await showModalBottomSheet<String>(
+    context: context,
+    backgroundColor: const Color(0xFF1E0A32),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (ctx) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.refresh, color: Colors.white70),
+            title: Text('Replace', style: GoogleFonts.outfit(color: Colors.white)),
+            onTap: () => Navigator.pop(ctx, 'replace'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
+            title: Text('Remove', style: GoogleFonts.outfit(color: Colors.redAccent)),
+            onTap: () => Navigator.pop(ctx, 'remove'),
+          ),
+        ],
+      ),
+    ),
+  );
+  if (!context.mounted) return;
+  if (action == 'replace') onReplace();
+  if (action == 'remove') onRemove();
+}
