@@ -1,0 +1,14 @@
+useautobus.com, www.useautobus.com {
+	# Forward all traffic to the Autobus Flutter web app (nginx in autobus_web)
+	reverse_proxy autobus_web:80 {
+		header_up Host {host}
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Real-IP {remote}
+		header_up X-Forwarded-For {remote}
+	}
+
+	# File uploads (profile images, attachments, etc.)
+	request_body {
+		max_size 50MB
+	}
+}
