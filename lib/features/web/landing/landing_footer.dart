@@ -1,4 +1,5 @@
 import 'package:autobus/barrel.dart';
+import 'package:autobus/features/legal/account_deletion_page.dart';
 import 'package:autobus/features/legal/privacy_policy_page.dart';
 
 class LandingFooter extends StatelessWidget {
@@ -13,6 +14,12 @@ class LandingFooter extends StatelessWidget {
   void _openPrivacyPolicy(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()),
+    );
+  }
+
+  void _openAccountDeletion(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const AccountDeletionPage()),
     );
   }
 
@@ -33,9 +40,11 @@ class LandingFooter extends StatelessWidget {
           child: isNarrow ? _NarrowContent(
             year: year,
             onPrivacyTap: () => _openPrivacyPolicy(context),
+            onAccountDeletionTap: () => _openAccountDeletion(context),
           ) : _WideContent(
             year: year,
             onPrivacyTap: () => _openPrivacyPolicy(context),
+            onAccountDeletionTap: () => _openAccountDeletion(context),
           ),
         ),
       ),
@@ -47,10 +56,12 @@ class _WideContent extends StatelessWidget {
   const _WideContent({
     required this.year,
     required this.onPrivacyTap,
+    required this.onAccountDeletionTap,
   });
 
   final int year;
   final VoidCallback onPrivacyTap;
+  final VoidCallback onAccountDeletionTap;
 
   @override
   Widget build(BuildContext context) {
@@ -110,6 +121,10 @@ class _WideContent extends StatelessWidget {
                     label: 'Privacy Policy',
                     onTap: onPrivacyTap,
                   ),
+                  _FooterLink(
+                    label: 'Account Deletion',
+                    onTap: onAccountDeletionTap,
+                  ),
                   const _FooterLink(label: 'Terms & Conditions'),
                 ],
               ),
@@ -162,10 +177,12 @@ class _NarrowContent extends StatelessWidget {
   const _NarrowContent({
     required this.year,
     required this.onPrivacyTap,
+    required this.onAccountDeletionTap,
   });
 
   final int year;
   final VoidCallback onPrivacyTap;
+  final VoidCallback onAccountDeletionTap;
 
   @override
   Widget build(BuildContext context) {
@@ -201,6 +218,10 @@ class _NarrowContent extends StatelessWidget {
           title: 'Legal',
           links: [
             _FooterLink(label: 'Privacy Policy', onTap: onPrivacyTap),
+            _FooterLink(
+              label: 'Account Deletion',
+              onTap: onAccountDeletionTap,
+            ),
             const _FooterLink(label: 'Terms & Conditions'),
           ],
         ),
