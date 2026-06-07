@@ -1,6 +1,7 @@
 import 'package:autobus/barrel.dart';
 import 'package:autobus/features/web/shell/web_app_controller.dart';
 import 'package:autobus/features/web/shell/web_dashboard_shell.dart';
+import 'package:autobus/features/web/legal_web_paths.dart';
 import 'package:autobus/features/web/web_entry.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
@@ -93,8 +94,13 @@ class MyApp extends StatelessWidget {
               title: 'Autobus',
               theme: state.themeData,
               builder: (context, child) {
-                if (kIsWeb && WebAppController.instance.useDashboardShell) {
-                  return const WebDashboardShell();
+                if (kIsWeb) {
+                  if (isLegalWebPath(Uri.base.path)) {
+                    return child ?? const SizedBox.shrink();
+                  }
+                  if (WebAppController.instance.useDashboardShell) {
+                    return const WebDashboardShell();
+                  }
                 }
                 return child ?? const SizedBox.shrink();
               },

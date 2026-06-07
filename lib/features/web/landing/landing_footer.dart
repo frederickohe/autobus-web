@@ -1,6 +1,8 @@
 import 'package:autobus/barrel.dart';
 import 'package:autobus/features/legal/account_deletion_page.dart';
 import 'package:autobus/features/legal/privacy_policy_page.dart';
+import 'package:autobus/features/web/legal_web_paths.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class LandingFooter extends StatelessWidget {
   const LandingFooter({super.key, required this.isNarrow});
@@ -12,12 +14,20 @@ class LandingFooter extends StatelessWidget {
   static const _divider = Color(0xFF3D2A5C);
 
   void _openPrivacyPolicy(BuildContext context) {
+    if (kIsWeb) {
+      openLegalWebPath('/privacy');
+      return;
+    }
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()),
     );
   }
 
   void _openAccountDeletion(BuildContext context) {
+    if (kIsWeb) {
+      openLegalWebPath('/delete-account');
+      return;
+    }
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const AccountDeletionPage()),
     );
