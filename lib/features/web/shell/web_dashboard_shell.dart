@@ -10,6 +10,9 @@ class WebDashboardShell extends StatelessWidget {
   static const double sidebarBreakpoint = 960;
   static const double fullSidebarWidth = 248;
   static const Color shellBackground = Color(0xFF0A0512);
+  static const Color contentBackground = Colors.white;
+  static const Color topBarBackground = Colors.white;
+  static const Color topBarBorder = Color(0xFFE2E8F0);
   static const Color sidebarBackground = Color(0xFF1A0F2E);
   static const Color sidebarBorder = Color(0xFF3F1163);
 
@@ -29,7 +32,7 @@ class WebDashboardShell extends StatelessWidget {
             }
 
             return ColoredBox(
-              color: shellBackground,
+              color: contentBackground,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -106,7 +109,7 @@ class _MobileWebDashboardState extends State<_MobileWebDashboard> {
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: WebDashboardShell.shellBackground,
+      backgroundColor: WebDashboardShell.contentBackground,
       drawer: Drawer(
         width: WebDashboardShell.fullSidebarWidth,
         backgroundColor: WebDashboardShell.sidebarBackground,
@@ -140,18 +143,27 @@ class _WebDashboardTopBar extends StatelessWidget {
       height: 64,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: const BoxDecoration(
-        color: WebDashboardShell.sidebarBackground,
-        border: Border(bottom: BorderSide(color: WebDashboardShell.sidebarBorder)),
+        color: WebDashboardShell.topBarBackground,
+        border: Border(bottom: BorderSide(color: WebDashboardShell.topBarBorder)),
       ),
       child: Row(
         children: [
           if (onMenuPressed != null)
             IconButton(
               onPressed: onMenuPressed,
-              icon: const Icon(Icons.menu, color: Colors.white),
+              icon: const Icon(Icons.menu, color: WebDashboardShell.sidebarBackground),
             ),
           const Spacer(),
           const _WebDashboardNotificationButton(),
+          const SizedBox(width: 4),
+          UserAvatar(
+            size: 40,
+            onLightBackground: true,
+            onTap: () {
+              WebAppController.instance.pushContent(const Profile());
+            },
+          ),
+          const SizedBox(width: 8),
         ],
       ),
     );
@@ -353,7 +365,10 @@ class _WebDashboardNotificationButtonState
           icon: Stack(
             clipBehavior: Clip.none,
             children: [
-              const Icon(Icons.notifications_none, color: Colors.white),
+              const Icon(
+                Icons.notifications_none,
+                color: WebDashboardShell.sidebarBackground,
+              ),
               if (unread > 0)
                 Positioned(
                   right: -1,

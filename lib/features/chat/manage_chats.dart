@@ -84,12 +84,12 @@ class _ManageChatsState extends State<ManageChats> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: ManageScreenStyle.scaffoldBackgroundColor,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          const DecoratedBox(
-            decoration: ManageScreenStyle.homeDashboardBodyDecoration,
+          DecoratedBox(
+            decoration: ManageScreenStyle.bodyDecoration(),
           ),
           SafeArea(
             child: Column(
@@ -105,23 +105,13 @@ class _ManageChatsState extends State<ManageChats> {
                           Text(
                             'Welcome to Inbox',
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.montserrat(
-                              color: Colors.white,
-                              fontSize: 19,
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: -0.3,
-                            ),
+                            style: ManageScreenStyle.hubWelcomeTitleStyle(),
                           ),
                           const SizedBox(height: 24),
                           Text(
                             'Deliver instant, intelligent customer support with AI trained on your business data through linked social messaging channels.',
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.montserrat(
-                              color: Colors.white.withValues(alpha: 0.9),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w300,
-                              height: 1.6,
-                            ),
+                            style: ManageScreenStyle.hubWelcomeSubtitleStyle(),
                           ),
                           const SizedBox(height: 32),
                           if (_loading) ...[
@@ -277,15 +267,9 @@ class _ManageChatsState extends State<ManageChats> {
                           ] else
                             const SizedBox(height: 8),
                           const SizedBox(height: 40),
-                          GridView.count(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 16,
-                            crossAxisSpacing: 16,
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            childAspectRatio: 1.0,
+                          ManageHubGrid(
                             children: [
-                              _ChatActionCard(
+                              ManageHubActionCard(
                                 icon: Icons.link_outlined,
                                 label: 'Link Channel',
                                 onTap: () {
@@ -302,7 +286,7 @@ class _ManageChatsState extends State<ManageChats> {
                                   });
                                 },
                               ),
-                              _ChatActionCard(
+                              ManageHubActionCard(
                                 icon: Icons.mark_chat_unread_outlined,
                                 label: 'Live Chats',
                                 onTap: () {
@@ -315,7 +299,7 @@ class _ManageChatsState extends State<ManageChats> {
                                   );
                                 },
                               ),
-                              _ChatActionCard(
+                              ManageHubActionCard(
                                 icon: Icons.chat_bubble_outline,
                                 label: 'All Chats',
                                 onTap: () {
@@ -380,47 +364,6 @@ class _ChatwootMessagePanel extends StatelessWidget {
           Expanded(child: child),
           if (trailing != null) trailing!,
         ],
-      ),
-    );
-  }
-}
-
-class _ChatActionCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _ChatActionCard({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFF3F1163), width: 1),
-          borderRadius: BorderRadius.circular(32),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: Colors.white, size: 28),
-            const SizedBox(height: 14),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.montserrat(
-                color: Colors.white.withValues(alpha: 0.9),
-                fontSize: 13,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

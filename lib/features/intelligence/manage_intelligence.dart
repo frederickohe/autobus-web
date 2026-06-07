@@ -383,12 +383,12 @@ class _ManageIntelligenceState extends State<ManageIntelligence> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: ManageScreenStyle.scaffoldBackgroundColor,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          const DecoratedBox(
-            decoration: ManageScreenStyle.homeDashboardBodyDecoration,
+          DecoratedBox(
+            decoration: ManageScreenStyle.bodyDecoration(),
           ),
           SafeArea(
             child: Column(
@@ -406,23 +406,13 @@ class _ManageIntelligenceState extends State<ManageIntelligence> {
                           Text(
                             'Welcome to Business Chat Intelligence',
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.montserrat(
-                              color: Colors.white,
-                              fontSize: 19,
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: -0.3,
-                            ),
+                            style: ManageScreenStyle.hubWelcomeTitleStyle(),
                           ),
                           const SizedBox(height: 24),
                           Text(
                             'Upload business information documents to train your AI assistant on your company\'s information. The AI can instantly answer customer questions, provide support, and deliver accurate responses based on your files — helping businesses automate communication and improve customer experience.',
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.montserrat(
-                              color: Colors.white.withValues(alpha: 0.9),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w300,
-                              height: 1.6,
-                            ),
+                            style: ManageScreenStyle.hubWelcomeSubtitleStyle(),
                           ),
                           const SizedBox(height: 32),
                           if (_presenceLoading) ...[
@@ -535,11 +525,7 @@ class _ManageIntelligenceState extends State<ManageIntelligence> {
                               alignment: Alignment.centerLeft,
                               child: Text(
                                 'Websites',
-                                style: GoogleFonts.montserrat(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                style: ManageScreenStyle.hubSectionTitleStyle(),
                               ),
                             ),
                             const SizedBox(height: 10),
@@ -547,17 +533,11 @@ class _ManageIntelligenceState extends State<ManageIntelligence> {
                           ],
                           const SizedBox(height: 40),
                           // Action Cards Grid
-                          GridView.count(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 16,
-                            crossAxisSpacing: 16,
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            childAspectRatio: 1.0,
+                          ManageHubGrid(
                             children: [
-                              _IntelligenceCard(
+                              ManageHubActionCard(
                                 icon: Icons.auto_awesome_outlined,
-                                title: 'My AI',
+                                label: 'My AI',
                                 onTap: () {
                                   Navigator.push<void>(
                                     context,
@@ -570,19 +550,19 @@ class _ManageIntelligenceState extends State<ManageIntelligence> {
                                   );
                                 },
                               ),
-                              _IntelligenceCard(
+                              ManageHubActionCard(
                                 icon: Icons.description_outlined,
-                                title: 'Upload Files',
+                                label: 'Upload Files',
                                 onTap: _handleUploadFiles,
                               ),
-                              _IntelligenceCard(
+                              ManageHubActionCard(
                                 icon: Icons.language_outlined,
-                                title: 'Index Website',
+                                label: 'Index Website',
                                 onTap: _handleIndexWebsite,
                               ),
-                              _IntelligenceCard(
+                              ManageHubActionCard(
                                 icon: Icons.folder_open_outlined,
-                                title: 'View Sources',
+                                label: 'View Sources',
                                 onTap: () async {
                                   await Navigator.push<void>(
                                     context,
@@ -901,46 +881,6 @@ class _RagIndexProgressDialogState extends State<_RagIndexProgressDialog> {
   }
 }
 
-class _IntelligenceCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final VoidCallback onTap;
-
-  const _IntelligenceCard({
-    required this.icon,
-    required this.title,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFF3F1163), width: 1),
-          borderRadius: BorderRadius.circular(32),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: Colors.white, size: 28),
-            const SizedBox(height: 14),
-            Text(
-              title,
-              style: GoogleFonts.montserrat(
-                color: Colors.white.withValues(alpha: 0.9),
-                fontSize: 13,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class IntelligenceHistoryPage extends StatefulWidget {
   const IntelligenceHistoryPage({super.key});
 
@@ -1177,12 +1117,12 @@ class _IntelligenceHistoryPageState extends State<IntelligenceHistoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: ManageScreenStyle.scaffoldBackgroundColor,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          const DecoratedBox(
-            decoration: ManageScreenStyle.homeDashboardBodyDecoration,
+          DecoratedBox(
+            decoration: ManageScreenStyle.bodyDecoration(),
           ),
           SafeArea(
             child: Padding(

@@ -103,12 +103,12 @@ class _ManageReportsState extends State<ManageReports> {
     final snap = _snapshot;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: ManageScreenStyle.scaffoldBackgroundColor,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          const DecoratedBox(
-            decoration: ManageScreenStyle.homeDashboardBodyDecoration,
+          DecoratedBox(
+            decoration: ManageScreenStyle.bodyDecoration(),
           ),
           SafeArea(
             child: Column(
@@ -145,9 +145,11 @@ class _ManageReportsState extends State<ManageReports> {
                             alignment: Alignment.centerRight,
                             child: IconButton(
                               onPressed: _load,
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.refresh,
-                                color: Colors.white70,
+                                color: ManageScreenStyle.useLightTheme
+                                    ? ManageScreenStyle.lightSecondaryText
+                                    : Colors.white70,
                               ),
                               tooltip: 'Refresh',
                             ),
@@ -185,27 +187,14 @@ class _ManageReportsState extends State<ManageReports> {
                                   const SizedBox(height: 28),
                                   Text(
                                     'Detailed reports',
-                                    style: GoogleFonts.montserrat(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.85,
-                                      ),
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                                    style: ManageScreenStyle.hubSectionTitleStyle(),
                                   ),
                                   const SizedBox(height: 16),
-                                  GridView.count(
-                                    crossAxisCount: 2,
-                                    shrinkWrap: true,
-                                    physics:
-                                        const NeverScrollableScrollPhysics(),
-                                    mainAxisSpacing: 16,
-                                    crossAxisSpacing: 16,
-                                    childAspectRatio: 1.05,
+                                  ManageHubGrid(
                                     children: [
-                                      _ReportHubCard(
+                                      ManageHubActionCard(
                                         icon: Icons.payments_outlined,
-                                        title: 'Financial',
+                                        label: 'Financial',
                                         subtitle: formatReportCurrency(
                                           snap.financialVolume,
                                         ),
@@ -219,9 +208,9 @@ class _ManageReportsState extends State<ManageReports> {
                                           ),
                                         ),
                                       ),
-                                      _ReportHubCard(
+                                      ManageHubActionCard(
                                         icon: Icons.receipt_long_outlined,
-                                        title: 'Orders',
+                                        label: 'Orders',
                                         subtitle:
                                             '${snap.filteredOrders.length} orders',
                                         onTap: () => Navigator.push<void>(
@@ -233,9 +222,9 @@ class _ManageReportsState extends State<ManageReports> {
                                           ),
                                         ),
                                       ),
-                                      _ReportHubCard(
+                                      ManageHubActionCard(
                                         icon: Icons.request_quote_outlined,
-                                        title: 'Invoices',
+                                        label: 'Invoices',
                                         subtitle: snap.orderInvoicesSent > 0
                                             ? '${snap.orderInvoicesSent} sent · ${snap.paidOrderInvoices} paid'
                                             : 'No invoices yet',
@@ -249,9 +238,9 @@ class _ManageReportsState extends State<ManageReports> {
                                           ),
                                         ),
                                       ),
-                                      _ReportHubCard(
+                                      ManageHubActionCard(
                                         icon: Icons.inventory_2_outlined,
-                                        title: 'Inventory',
+                                        label: 'Inventory',
                                         subtitle:
                                             '${snap.lowStock.length} low stock',
                                         onTap: () => Navigator.push<void>(
@@ -264,9 +253,9 @@ class _ManageReportsState extends State<ManageReports> {
                                           ),
                                         ),
                                       ),
-                                      _ReportHubCard(
+                                      ManageHubActionCard(
                                         icon: Icons.forum_outlined,
-                                        title: 'Engagement',
+                                        label: 'Engagement',
                                         subtitle:
                                             '${snap.conversationsNonIntervention + snap.conversationsActive} chats',
                                         onTap: () => Navigator.push<void>(
@@ -352,11 +341,7 @@ class _OverviewSection extends StatelessWidget {
       children: [
         Text(
           'Overview · ${snap.period.label}',
-          style: GoogleFonts.montserrat(
-            color: Colors.white.withValues(alpha: 0.85),
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
+          style: ManageScreenStyle.hubSectionTitleStyle(),
         ),
         const SizedBox(height: 16),
         _HeroMetricCard(
@@ -513,11 +498,25 @@ class _MetricTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final light = ManageScreenStyle.useLightTheme;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFF3F1163)),
+        color: light ? Colors.white : null,
+        border: Border.all(
+          color: light ? ManageScreenStyle.lightBorder : const Color(0xFF3F1163),
+        ),
         borderRadius: BorderRadius.circular(16),
+        boxShadow: light
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -525,7 +524,9 @@ class _MetricTile extends StatelessWidget {
           Text(
             label,
             style: GoogleFonts.montserrat(
-              color: Colors.white54,
+              color: light
+                  ? ManageScreenStyle.lightSecondaryText
+                  : Colors.white54,
               fontSize: 11,
               fontWeight: FontWeight.w400,
             ),
@@ -534,7 +535,7 @@ class _MetricTile extends StatelessWidget {
           Text(
             value,
             style: GoogleFonts.montserrat(
-              color: Colors.white,
+              color: light ? ManageScreenStyle.lightPrimaryText : Colors.white,
               fontSize: 18,
               fontWeight: FontWeight.w600,
             ),
@@ -544,65 +545,14 @@ class _MetricTile extends StatelessWidget {
             Text(
               sub!,
               style: GoogleFonts.montserrat(
-                color: Colors.white38,
+                color: light
+                    ? ManageScreenStyle.lightSecondaryText
+                    : Colors.white38,
                 fontSize: 10,
               ),
             ),
           ],
         ],
-      ),
-    );
-  }
-}
-
-class _ReportHubCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  const _ReportHubCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFF3F1163)),
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: Colors.white, size: 26),
-            const Spacer(),
-            Text(
-              title,
-              style: GoogleFonts.montserrat(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: GoogleFonts.montserrat(
-                color: Colors.white54,
-                fontSize: 11,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -6,12 +6,12 @@ class ManageInteractions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: ManageScreenStyle.scaffoldBackgroundColor,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          const DecoratedBox(
-            decoration: ManageScreenStyle.homeDashboardBodyDecoration,
+          DecoratedBox(
+            decoration: ManageScreenStyle.bodyDecoration(),
           ),
           SafeArea(
             child: Column(
@@ -28,38 +28,22 @@ class ManageInteractions extends StatelessWidget {
                           Text(
                             'Welcome to Inbox',
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.montserrat(
-                              color: Colors.white,
-                              fontSize: 19,
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: -0.3,
-                            ),
+                            style: ManageScreenStyle.hubWelcomeTitleStyle(),
                           ),
                           const SizedBox(height: 24),
                           Text(
                             'Interact with AI-driven analytics to gain insights, monitor performance, and support decision-making.',
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.montserrat(
-                              color: Colors.white.withValues(alpha: 0.9),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w300,
-                              height: 1.6,
-                            ),
+                            style: ManageScreenStyle.hubWelcomeSubtitleStyle(),
                           ),
                           const SizedBox(height: 32),
                           const SizedBox(height: 8),
                           const SizedBox(height: 40),
-                          GridView.count(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 16,
-                            crossAxisSpacing: 16,
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            childAspectRatio: 1.0,
+                          ManageHubGrid(
                             children: [
-                              _InteractionCard(
+                              ManageHubActionCard(
                                 icon: Icons.forum_outlined,
-                                title: 'Start Interaction',
+                                label: 'Start Interaction',
                                 onTap: () {
                                   Navigator.push<void>(
                                     context,
@@ -72,9 +56,9 @@ class ManageInteractions extends StatelessWidget {
                                   );
                                 },
                               ),
-                              _InteractionCard(
+                              ManageHubActionCard(
                                 icon: Icons.history_outlined,
-                                title: 'View Interactions',
+                                label: 'View Interactions',
                                 onTap: () {
                                   Navigator.push<void>(
                                     context,
@@ -102,46 +86,6 @@ class ManageInteractions extends StatelessWidget {
   }
 }
 
-class _InteractionCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final VoidCallback onTap;
-
-  const _InteractionCard({
-    required this.icon,
-    required this.title,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFF3F1163), width: 1),
-          borderRadius: BorderRadius.circular(32),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: Colors.white, size: 28),
-            const SizedBox(height: 14),
-            Text(
-              title,
-              style: GoogleFonts.montserrat(
-                color: Colors.white.withValues(alpha: 0.9),
-                fontSize: 13,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class InteractionHistoryPage extends StatelessWidget {
   const InteractionHistoryPage({super.key});
 
@@ -150,11 +94,16 @@ class InteractionHistoryPage extends StatelessWidget {
     required String id,
     required String date,
   }) {
+    final light = ManageScreenStyle.useLightTheme;
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFF3F1163), width: 1),
+        border: Border.all(
+          color: light ? ManageScreenStyle.lightBorder : const Color(0xFF3F1163),
+        ),
         borderRadius: BorderRadius.circular(30),
+        color: light ? Colors.white : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -162,7 +111,7 @@ class InteractionHistoryPage extends StatelessWidget {
           Text(
             title,
             style: GoogleFonts.outfit(
-              color: Colors.white,
+              color: light ? ManageScreenStyle.lightPrimaryText : Colors.white,
               fontSize: 18,
               fontWeight: FontWeight.w400,
             ),
@@ -177,7 +126,9 @@ class InteractionHistoryPage extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.outfit(
-                    color: Colors.white.withValues(alpha: 0.45),
+                    color: light
+                        ? ManageScreenStyle.lightSecondaryText
+                        : Colors.white.withValues(alpha: 0.45),
                     fontSize: 11,
                     fontWeight: FontWeight.w300,
                   ),
@@ -187,7 +138,9 @@ class InteractionHistoryPage extends StatelessWidget {
               Text(
                 date,
                 style: GoogleFonts.outfit(
-                  color: Colors.white.withValues(alpha: 0.45),
+                  color: light
+                      ? ManageScreenStyle.lightSecondaryText
+                      : Colors.white.withValues(alpha: 0.45),
                   fontSize: 11,
                   fontWeight: FontWeight.w300,
                 ),
@@ -202,12 +155,12 @@ class InteractionHistoryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: ManageScreenStyle.scaffoldBackgroundColor,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          const DecoratedBox(
-            decoration: ManageScreenStyle.homeDashboardBodyDecoration,
+          DecoratedBox(
+            decoration: ManageScreenStyle.bodyDecoration(),
           ),
           SafeArea(
             child: Padding(

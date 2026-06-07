@@ -116,20 +116,23 @@ class _HomeState extends State<Home> {
       }),
     ];
 
-    // Two-stop gradient: Figma dashboard top #1E0C37 → black.
+    final inWebShell = kIsWeb && WebAppController.instance.useDashboardShell;
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: inWebShell ? Colors.white : Colors.black,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFF130522), Color(0xFF000000)],
-              ),
-            ),
+          DecoratedBox(
+            decoration: inWebShell
+                ? ManageScreenStyle.webDashboardBodyDecoration
+                : const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0xFF130522), Color(0xFF000000)],
+                    ),
+                  ),
           ),
           // Content
           SafeArea(
@@ -201,7 +204,9 @@ class _HomeState extends State<Home> {
                           Text(
                             'Hello $firstName',
                             style: GoogleFonts.montserrat(
-                              color: Colors.white.withValues(alpha: 0.8),
+                              color: inWebShell
+                                  ? ManageScreenStyle.lightSecondaryText
+                                  : Colors.white.withValues(alpha: 0.8),
                               fontSize: 20,
                               fontWeight: FontWeight.w300,
                             ),
@@ -394,22 +399,36 @@ class _DashboardCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final light = kIsWeb && WebAppController.instance.useDashboardShell;
+
     return GestureDetector(
       onTap: item.onTap,
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFF3F1163), width: 1),
+          border: Border.all(
+            color: light ? ManageScreenStyle.lightBorder : const Color(0xFF3F1163),
+          ),
+          color: light ? Colors.white : null,
+          boxShadow: light
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildIcon(item.icon),
+            _buildIcon(item.icon, light: light),
             const SizedBox(height: 12),
             Text(
               item.title,
               style: GoogleFonts.montserrat(
-                color: Colors.white,
+                color: light ? ManageScreenStyle.lightPrimaryText : Colors.white,
                 fontSize: 13,
                 fontWeight: FontWeight.w300,
               ),
@@ -421,12 +440,12 @@ class _DashboardCard extends StatelessWidget {
     );
   }
 
-  Widget _buildIcon(dynamic icon) {
+  Widget _buildIcon(dynamic icon, {required bool light}) {
+    final color = light ? CustColors.mainCol : Colors.white70;
     if (icon is IconData) {
-      return Icon(icon, color: Colors.white70, size: 30);
+      return Icon(icon, color: color, size: 30);
     } else {
-      // Handle iconify icons (SVG strings)
-      return Iconify(icon, color: Colors.white70, size: 30);
+      return Iconify(icon, color: color, size: 30);
     }
   }
 }
@@ -447,6 +466,8 @@ class _AlertBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final light = kIsWeb && WebAppController.instance.useDashboardShell;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -455,7 +476,11 @@ class _AlertBox extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFF3F1163), width: 1.5),
+          border: Border.all(
+            color: light ? ManageScreenStyle.lightBorder : const Color(0xFF3F1163),
+            width: light ? 1 : 1.5,
+          ),
+          color: light ? const Color(0xFFFEF2F2) : null,
         ),
         child: Row(
           children: [
@@ -471,7 +496,9 @@ class _AlertBox extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.montserrat(
-                  color: Colors.white.withValues(alpha: 0.8),
+                  color: light
+                      ? ManageScreenStyle.lightPrimaryText
+                      : Colors.white.withValues(alpha: 0.8),
                   fontSize: 12,
                   fontWeight: FontWeight.w400,
                 ),

@@ -6,12 +6,12 @@ class ManageMarketing extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: ManageScreenStyle.scaffoldBackgroundColor,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          const DecoratedBox(
-            decoration: ManageScreenStyle.homeDashboardBodyDecoration,
+          DecoratedBox(
+            decoration: ManageScreenStyle.bodyDecoration(),
           ),
           SafeArea(
             child: Column(
@@ -27,38 +27,22 @@ class ManageMarketing extends StatelessWidget {
                           Text(
                             'Welcome to Marketing',
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.montserrat(
-                              color: Colors.white,
-                              fontSize: 19,
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: -0.3,
-                            ),
+                            style: ManageScreenStyle.hubWelcomeTitleStyle(),
                           ),
                           const SizedBox(height: 24),
                           Text(
                             'Create smarter campaigns, generate marketing content, and reach the right audience with AI-driven tools.',
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.montserrat(
-                              color: Colors.white.withValues(alpha: 0.9),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w300,
-                              height: 1.6,
-                            ),
+                            style: ManageScreenStyle.hubWelcomeSubtitleStyle(),
                           ),
                           const SizedBox(height: 32),
                           const SizedBox(height: 8),
                           const SizedBox(height: 40),
-                          GridView.count(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 16,
-                            crossAxisSpacing: 16,
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            childAspectRatio: 1.0,
+                          ManageHubGrid(
                             children: [
-                              _MarketingHubCard(
+                              ManageHubActionCard(
                                 icon: Icons.campaign_outlined,
-                                title: 'Create Campaigns',
+                                label: 'Create Campaigns',
                                 onTap: () {
                                   Navigator.push<void>(
                                     context,
@@ -69,9 +53,9 @@ class ManageMarketing extends StatelessWidget {
                                   );
                                 },
                               ),
-                              _MarketingHubCard(
+                              ManageHubActionCard(
                                 icon: Icons.link_outlined,
-                                title: 'Link Outlet',
+                                label: 'Link Outlet',
                                 onTap: () {
                                   Navigator.push<void>(
                                     context,
@@ -81,9 +65,9 @@ class ManageMarketing extends StatelessWidget {
                                   );
                                 },
                               ),
-                              _MarketingHubCard(
+                              ManageHubActionCard(
                                 icon: Icons.history_edu_outlined,
-                                title: 'Recent campaigns',
+                                label: 'Recent campaigns',
                                 onTap: () {
                                   Navigator.push<void>(
                                     context,
@@ -106,47 +90,6 @@ class ManageMarketing extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _MarketingHubCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final VoidCallback onTap;
-
-  const _MarketingHubCard({
-    required this.icon,
-    required this.title,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFF3F1163), width: 1),
-          borderRadius: BorderRadius.circular(32),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: Colors.white, size: 28),
-            const SizedBox(height: 14),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.montserrat(
-                color: Colors.white.withValues(alpha: 0.9),
-                fontSize: 13,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

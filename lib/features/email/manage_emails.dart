@@ -56,12 +56,12 @@ class _ManageEmailsState extends State<ManageEmails> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: ManageScreenStyle.scaffoldBackgroundColor,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          const DecoratedBox(
-            decoration: ManageScreenStyle.homeDashboardBodyDecoration,
+          DecoratedBox(
+            decoration: ManageScreenStyle.bodyDecoration(),
           ),
           SafeArea(
             child: Column(
@@ -77,23 +77,13 @@ class _ManageEmailsState extends State<ManageEmails> {
                           Text(
                             'Welcome to Messaging',
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.montserrat(
-                              color: Colors.white,
-                              fontSize: 19,
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: -0.3,
-                            ),
+                            style: ManageScreenStyle.hubWelcomeTitleStyle(),
                           ),
                           const SizedBox(height: 24),
                           Text(
                             'Send emails and SMS for customer support, updates, promotions, and notifications — with your AI assistant.',
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.montserrat(
-                              color: Colors.white.withValues(alpha: 0.9),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w300,
-                              height: 1.6,
-                            ),
+                            style: ManageScreenStyle.hubWelcomeSubtitleStyle(),
                           ),
                           const SizedBox(height: 32),
                           if (_loading) ...[
@@ -186,17 +176,11 @@ class _ManageEmailsState extends State<ManageEmails> {
                           ] else
                             const SizedBox(height: 8),
                           const SizedBox(height: 40),
-                          GridView.count(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 16,
-                            crossAxisSpacing: 16,
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            childAspectRatio: 1.0,
+                          ManageHubGrid(
                             children: [
-                              _EmailHubCard(
+                              ManageHubActionCard(
                                 icon: Icons.auto_awesome_outlined,
-                                title: 'Send Mails',
+                                label: 'Send Mails',
                                 onTap: () {
                                   Navigator.push<void>(
                                     context,
@@ -206,9 +190,9 @@ class _ManageEmailsState extends State<ManageEmails> {
                                   );
                                 },
                               ),
-                              _EmailHubCard(
+                              ManageHubActionCard(
                                 icon: Icons.outbox_outlined,
-                                title: 'Sent Emails',
+                                label: 'Sent Emails',
                                 onTap: () {
                                   Navigator.push<void>(
                                     context,
@@ -218,9 +202,9 @@ class _ManageEmailsState extends State<ManageEmails> {
                                   );
                                 },
                               ),
-                              _EmailHubCard(
+                              ManageHubActionCard(
                                 icon: Icons.sms_outlined,
-                                title: 'SMS',
+                                label: 'SMS',
                                 onTap: () {
                                   Navigator.push<void>(
                                     context,
@@ -230,9 +214,9 @@ class _ManageEmailsState extends State<ManageEmails> {
                                   );
                                 },
                               ),
-                              _EmailHubCard(
+                              ManageHubActionCard(
                                 icon: Icons.send_to_mobile_outlined,
-                                title: 'Sent SMS',
+                                label: 'Sent SMS',
                                 onTap: () {
                                   Navigator.push<void>(
                                     context,
@@ -294,47 +278,6 @@ class _EmailNoticePanel extends StatelessWidget {
           Expanded(child: child),
           if (trailing != null) trailing!,
         ],
-      ),
-    );
-  }
-}
-
-class _EmailHubCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final VoidCallback onTap;
-
-  const _EmailHubCard({
-    required this.icon,
-    required this.title,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFF3F1163), width: 1),
-          borderRadius: BorderRadius.circular(32),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: Colors.white, size: 28),
-            const SizedBox(height: 14),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.montserrat(
-                color: Colors.white.withValues(alpha: 0.9),
-                fontSize: 13,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
