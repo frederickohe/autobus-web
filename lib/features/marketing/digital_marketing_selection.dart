@@ -146,7 +146,10 @@ class _DigitalMarketingSelectionState extends State<DigitalMarketingSelection> {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               child: Column(
                 children: [
-                  const ManageScreenHeader(title: 'Digital Marketing'),
+                  const ManageScreenHeader(
+                    title: 'Digital Marketing',
+                    creditCategory: CreditCategory.imageGen,
+                  ),
                   const SizedBox(height: 24),
                   Text(
                     'Select marketing content',

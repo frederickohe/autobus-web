@@ -94,7 +94,10 @@ class _ManageChatsState extends State<ManageChats> {
           SafeArea(
             child: Column(
               children: [
-                const ManageScreenHeader(title: 'Manage Inbox'),
+                const ManageScreenHeader(
+                  title: 'Manage Inbox',
+                  creditCategory: CreditCategory.llm,
+                ),
                 Expanded(
                   child: SingleChildScrollView(
                     child: Padding(

@@ -66,7 +66,10 @@ class _ManageEmailsState extends State<ManageEmails> {
           SafeArea(
             child: Column(
               children: [
-                const ManageScreenHeader(title: 'Manage Messaging'),
+                const ManageScreenHeader(
+                  title: 'Manage Messaging',
+                  creditCategory: CreditCategory.email,
+                ),
                 Expanded(
                   child: SingleChildScrollView(
                     child: Padding(

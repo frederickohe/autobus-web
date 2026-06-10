@@ -393,7 +393,10 @@ class _ManageIntelligenceState extends State<ManageIntelligence> {
           SafeArea(
             child: Column(
               children: [
-                const ManageScreenHeader(title: 'Manage Intelligence'),
+                const ManageScreenHeader(
+                  title: 'Manage Intelligence',
+                  creditCategory: CreditCategory.llm,
+                ),
                 // Welcome Section
                 Expanded(
                   child: SingleChildScrollView(
@@ -1132,6 +1135,7 @@ class _IntelligenceHistoryPageState extends State<IntelligenceHistoryPage> {
                 children: [
                   const ManageScreenHeader(
                     title: 'Manage Intelligence',
+                    creditCategory: CreditCategory.llm,
                     padding: EdgeInsets.zero,
                   ),
                   const SizedBox(height: 32),

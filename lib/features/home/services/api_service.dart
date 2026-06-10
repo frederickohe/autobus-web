@@ -64,6 +64,24 @@ class ApiService {
     }
   }
 
+  /// GET /api/v1/credits/me — JWT; per-category credit balances.
+  Future<Map<String, dynamic>?> getMyCredits() async {
+    try {
+      final response = await httpClient.get(
+        Uri.parse('$baseUrl/credits/me'),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data is Map<String, dynamic>) return data;
+        if (data is Map) return Map<String, dynamic>.from(data);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('getMyCredits: $e');
+      return null;
+    }
+  }
+
   /// GET /api/v1/subscription/me — JWT; current user's subscription snapshot.
   Future<Map<String, dynamic>?> getMySubscriptionStatus() async {
     try {

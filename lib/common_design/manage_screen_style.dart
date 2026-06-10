@@ -1,4 +1,5 @@
 import 'package:autobus/common_design/colors.dart';
+import 'package:autobus/common_design/widgets/credit_avatar.dart';
 import 'package:autobus/features/web/shell/web_app_controller.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -108,6 +109,8 @@ class ManageScreenStyle {
 class ManageScreenHeader extends StatelessWidget {
   final String title;
   final Widget? trailing;
+  /// When set (and [trailing] is null), shows a credit chip for this category.
+  final String? creditCategory;
   final VoidCallback? onBackPressed;
   final EdgeInsetsGeometry padding;
 
@@ -115,6 +118,7 @@ class ManageScreenHeader extends StatelessWidget {
     super.key,
     required this.title,
     this.trailing,
+    this.creditCategory,
     this.onBackPressed,
     this.padding = const EdgeInsets.fromLTRB(24, 24, 24, 0),
   });
@@ -149,11 +153,14 @@ class ManageScreenHeader extends StatelessWidget {
                 ),
               ),
             ),
-            if (trailing != null)
-              Align(
-                alignment: Alignment.centerRight,
-                child: trailing!,
-              ),
+            Align(
+              alignment: Alignment.centerRight,
+              child:
+                  trailing ??
+                  (creditCategory != null
+                      ? CreditAvatar(creditCategory: creditCategory!)
+                      : const SizedBox(width: 48, height: 48)),
+            ),
           ],
         ),
       ),

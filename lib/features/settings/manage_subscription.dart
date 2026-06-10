@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:autobus/common_design/colors.dart';
+import 'package:autobus/common_design/credit_category.dart';
 import 'package:autobus/common_design/widgets/autobus_loading_indicator.dart';
 import 'package:autobus/features/home/services/api_service.dart';
 import 'package:autobus/features/subscription/userplan.dart';
@@ -18,6 +19,7 @@ class ManageSubscriptionPage extends StatefulWidget {
 
 class _ManageSubscriptionPageState extends State<ManageSubscriptionPage> {
   Map<String, dynamic>? _status;
+  Map<String, dynamic>? _credits;
   bool _loading = true;
   String _userEmail = '';
 
@@ -28,7 +30,7 @@ class _ManageSubscriptionPageState extends State<ManageSubscriptionPage> {
   }
 
   Future<void> _bootstrap() async {
-    await Future.wait([_loadEmail(), _loadStatus()]);
+    await Future.wait([_loadEmail(), _loadStatus(), _loadCredits()]);
   }
 
   Future<void> _loadEmail() async {
@@ -108,6 +110,136 @@ class _ManageSubscriptionPageState extends State<ManageSubscriptionPage> {
     }
   }
 
+  Future<void> _loadCredits() async {
+    try {
+      final data = await context.read<ApiService>().getMyCredits();
+      if (!mounted) return;
+      setState(() => _credits = data);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _credits = null);
+    }
+  }
+
+  Future<void> _refreshAll() async {
+    await Future.wait([_loadStatus(), _loadCredits()]);
+  }
+
+  String _formatCreditValue(String type, dynamic remaining) {
+    final v = remaining is num
+        ? remaining.toDouble()
+        : double.tryParse(remaining?.toString() ?? '') ?? 0;
+    if (type == CreditCategory.storageMb) {
+      if (v >= 1024) return '${(v / 1024).toStringAsFixed(1)} GB';
+      return '${v.toStringAsFixed(0)} MB';
+    }
+    if (v >= 1000000) return '${(v / 1000000).toStringAsFixed(1)}M';
+    if (v >= 1000) return '${(v / 1000).toStringAsFixed(1)}K';
+    return v.toStringAsFixed(v == v.roundToDouble() ? 0 : 1);
+  }
+
+  Widget _buildCreditsSection() {
+    final creditsMap = _credits?['credits'];
+    if (creditsMap is! Map || creditsMap.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final entries = creditsMap.entries.toList()
+      ..sort((a, b) {
+        final la = CreditCategory.labelFor(a.key);
+        final lb = CreditCategory.labelFor(b.key);
+        return la.compareTo(lb);
+      });
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 20),
+        Text(
+          'Credits remaining',
+          style: GoogleFonts.montserrat(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 10),
+        ...entries.map((entry) {
+          final key = entry.key.toString();
+          final item = entry.value;
+          if (item is! Map) return const SizedBox.shrink();
+          final allocated = item['allocated'];
+          final remaining = item['remaining'];
+          final label = (item['label'] ?? CreditCategory.labelFor(key))
+              .toString();
+          final allocNum = allocated is num
+              ? allocated.toDouble()
+              : double.tryParse(allocated?.toString() ?? '') ?? 0;
+          final remNum = remaining is num
+              ? remaining.toDouble()
+              : double.tryParse(remaining?.toString() ?? '') ?? 0;
+          final progress =
+              allocNum > 0 ? (remNum / allocNum).clamp(0.0, 1.0) : 0.0;
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.65),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          label,
+                          style: GoogleFonts.montserrat(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        '${_formatCreditValue(key, remaining)} left',
+                        style: GoogleFonts.montserrat(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                          color: CustColors.mainCol,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 6,
+                      backgroundColor: Colors.black12,
+                      color: CustColors.mainCol,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${_formatCreditValue(key, allocated)} monthly allocation',
+                    style: GoogleFonts.montserrat(
+                      fontSize: 11,
+                      color: Colors.black45,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
   Future<void> _openPlanPicker({required bool upgrade}) async {
     var email = _userEmail.trim();
     if (email.isEmpty) {
@@ -138,7 +270,7 @@ class _ManageSubscriptionPageState extends State<ManageSubscriptionPage> {
         ),
       ),
     );
-    if (mounted) await _loadStatus();
+    if (mounted) await _refreshAll();
   }
 
   Future<void> _confirmCancel() async {
@@ -196,7 +328,7 @@ class _ManageSubscriptionPageState extends State<ManageSubscriptionPage> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Subscription cancelled.')));
-      await _loadStatus();
+      await _refreshAll();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -221,7 +353,7 @@ class _ManageSubscriptionPageState extends State<ManageSubscriptionPage> {
         ),
         child: SafeArea(
           child: RefreshIndicator(
-            onRefresh: _loadStatus,
+            onRefresh: _refreshAll,
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
@@ -322,6 +454,7 @@ class _ManageSubscriptionPageState extends State<ManageSubscriptionPage> {
                             ],
                           ),
                         ),
+                        _buildCreditsSection(),
                         const SizedBox(height: 18),
                         SizedBox(
                           width: double.infinity,
