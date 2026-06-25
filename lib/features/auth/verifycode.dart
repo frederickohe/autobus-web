@@ -105,11 +105,17 @@ class _VerifyCodeState extends State<VerifyCode> {
                 padding: const EdgeInsets.only(left: 20.0, right: 20.0),
                 child: TextField(
                   controller: codeController,
-                  decoration: const InputDecoration(
-                    hintText: '',
-                    border: UnderlineInputBorder(),
+                  decoration: InputDecoration(
+                    hintText: 'Enter 6-digit code',
+                    hintStyle: GoogleFonts.montserrat(
+                      color: Colors.black38,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                    ),
+                    border: const UnderlineInputBorder(),
                   ),
                   obscureText: true,
+                  keyboardType: TextInputType.number,
                 ),
               ),
               const SizedBox(height: 15),

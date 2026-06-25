@@ -1,4 +1,5 @@
 import 'package:autobus/barrel.dart';
+import 'package:autobus/features/reports/reports_overview.dart';
 import 'package:autobus/features/web/shell/web_app_controller.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
@@ -250,6 +251,17 @@ class _HomeState extends State<Home> {
                       );
                     },
                   ),
+                  if (inWebShell) ...[
+                    ReportsOverviewPanel(
+                      horizontalPadding: 0,
+                      showViewDetailedReportsLink: true,
+                      onViewDetailedReports: () => _openHub(
+                        context,
+                        navId: 'analytics',
+                        screen: const ManageReports(),
+                      ),
+                    ),
+                  ],
                           if (!(kIsWeb &&
                               WebAppController.instance.useDashboardShell))
                             GridView.builder(

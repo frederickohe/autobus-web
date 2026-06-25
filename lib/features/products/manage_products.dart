@@ -56,12 +56,12 @@ class _ManageProductsState extends State<ManageProducts> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: ManageScreenStyle.scaffoldBackgroundColor,
+      backgroundColor: Colors.black,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          DecoratedBox(
-            decoration: ManageScreenStyle.bodyDecoration(),
+          const DecoratedBox(
+            decoration: ManageScreenStyle.homeDashboardBodyDecoration,
           ),
           SafeArea(
             child: Column(
@@ -77,13 +77,23 @@ class _ManageProductsState extends State<ManageProducts> {
                           Text(
                             'Welcome to Products',
                             textAlign: TextAlign.center,
-                            style: ManageScreenStyle.hubWelcomeTitleStyle(),
+                            style: GoogleFonts.montserrat(
+                              color: Colors.white,
+                              fontSize: 19,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: -0.3,
+                            ),
                           ),
                           const SizedBox(height: 24),
                           Text(
                             'Manage and organize product documents with automated recommendations, updates, and insights from your AI assistant.',
                             textAlign: TextAlign.center,
-                            style: ManageScreenStyle.hubWelcomeSubtitleStyle(),
+                            style: GoogleFonts.montserrat(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w300,
+                              height: 1.6,
+                            ),
                           ),
                           const SizedBox(height: 32),
                           if (_loading) ...[
@@ -148,26 +158,34 @@ class _ManageProductsState extends State<ManageProducts> {
                           ] else
                             const SizedBox(height: 8),
                           const SizedBox(height: 40),
-                          ManageHubGrid(
+                          GridView.count(
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 16,
+                            crossAxisSpacing: 16,
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            childAspectRatio: 1.0,
                             children: [
-                              ManageHubActionCard(
+                              _ProductHubCard(
                                 icon: Icons.add_box_outlined,
-                                label: 'Add Product',
+                                title: 'Add Product',
                                 onTap: () {
-                                  Navigator.push<void>(
+                                  Navigator.push<bool?>(
                                     context,
-                                    MaterialPageRoute<void>(
-                                      builder: (context) => const AutoBus(
-                                        title: 'Products',
-                                        webhookContext: 'products_agent',
-                                      ),
+                                    MaterialPageRoute<bool?>(
+                                      builder: (context) =>
+                                          const AddProductScreen(),
                                     ),
-                                  );
+                                  ).then((created) {
+                                    if (created == true && mounted) {
+                                      _loadCataloguePresence();
+                                    }
+                                  });
                                 },
                               ),
-                              ManageHubActionCard(
+                              _ProductHubCard(
                                 icon: Icons.inventory_2_outlined,
-                                label: 'View Products',
+                                title: 'View Products',
                                 onTap: () {
                                   Navigator.push<void>(
                                     context,
@@ -232,6 +250,47 @@ class _ProductNoticePanel extends StatelessWidget {
           Expanded(child: child),
           if (trailing != null) trailing!,
         ],
+      ),
+    );
+  }
+}
+
+class _ProductHubCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+
+  const _ProductHubCard({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: const Color(0xFF3F1163), width: 1),
+          borderRadius: BorderRadius.circular(32),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.white, size: 28),
+            const SizedBox(height: 14),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.montserrat(
+                color: Colors.white.withValues(alpha: 0.9),
+                fontSize: 13,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

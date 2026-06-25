@@ -1,4 +1,5 @@
 import 'package:autobus/barrel.dart';
+import 'package:autobus/features/products/product_existing_gallery.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final String productId;
@@ -22,13 +23,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   late final TextEditingController _categoryCtrl;
   late final TextEditingController _conditionCtrl;
   late final TextEditingController _stockCtrl;
-  late final TextEditingController _photoCtrl;
   late final TextEditingController _linkCtrl;
 
   bool _loading = true;
   bool _saving = false;
+  bool _photoBusy = false;
   String? _loadError;
   String? _inventoryId;
+  List<ProductGalleryPhoto> _photos = const [];
 
   @override
   void initState() {
@@ -39,7 +41,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     _categoryCtrl = TextEditingController();
     _conditionCtrl = TextEditingController();
     _stockCtrl = TextEditingController();
-    _photoCtrl = TextEditingController();
     _linkCtrl = TextEditingController();
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
@@ -52,7 +53,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     _categoryCtrl.dispose();
     _conditionCtrl.dispose();
     _stockCtrl.dispose();
-    _photoCtrl.dispose();
     _linkCtrl.dispose();
     super.dispose();
   }
@@ -73,26 +73,77 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     _conditionCtrl.text = (p['condition'] ?? '').toString();
     final stock = p['number_in_stock'];
     _stockCtrl.text = stock == null ? '' : stock.toString();
-    _photoCtrl.text = (p['photo'] ?? '').toString();
     _linkCtrl.text = (p['link'] ?? '').toString();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _loadError = null;
-    });
+  List<ProductGalleryPhoto> _photosFromProduct(Map<String, dynamic> p) {
+    final rawPhotos = p['photos'];
+    if (rawPhotos is List && rawPhotos.isNotEmpty) {
+      return rawPhotos
+          .map((e) => e.toString())
+          .where((url) => url.trim().isNotEmpty)
+          .toList()
+          .asMap()
+          .entries
+          .map(
+            (entry) => ProductGalleryPhoto(
+              imageId: 'legacy-${entry.key}',
+              url: entry.value,
+              isPrimary: entry.key == 0,
+            ),
+          )
+          .toList();
+    }
+    final single = (p['photo'] ?? '').toString().trim();
+    if (single.isNotEmpty) {
+      return [
+        ProductGalleryPhoto(imageId: 'legacy-0', url: single, isPrimary: true),
+      ];
+    }
+    return const [];
+  }
+
+  Future<void> _load({bool photosOnly = false}) async {
+    if (!photosOnly) {
+      setState(() {
+        _loading = true;
+        _loadError = null;
+      });
+    }
     try {
       final api = context.read<ApiService>();
-      final p = await api.getProduct(widget.productId);
+      final p = photosOnly
+          ? null
+          : await api.getProduct(widget.productId);
+      List<ProductGalleryPhoto> photos = const [];
+      try {
+        final photoRows = await api.listProductPhotos(widget.productId);
+        photos = photoRows
+            .map(ProductGalleryPhoto.fromJson)
+            .where((photo) => photo.url.trim().isNotEmpty)
+            .toList();
+      } catch (_) {
+        if (p != null) {
+          photos = _photosFromProduct(p);
+        }
+      }
       if (!mounted) return;
-      _populateForm(p);
-      setState(() => _loading = false);
+      if (p != null) {
+        _populateForm(p);
+      }
+      setState(() {
+        _photos = photos;
+        _loading = false;
+        _photoBusy = false;
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _loadError = e.toString().replaceFirst('Exception: ', '');
+        if (!photosOnly) {
+          _loadError = e.toString().replaceFirst('Exception: ', '');
+        }
         _loading = false;
+        _photoBusy = false;
       });
     }
   }
@@ -163,7 +214,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         category: _categoryCtrl.text,
         condition: _conditionCtrl.text.trim(),
         numberInStock: stock,
-        photo: _photoCtrl.text.trim().isNotEmpty ? _photoCtrl.text.trim() : null,
         link: _linkCtrl.text,
       );
       if (!mounted) return;
@@ -177,6 +227,60 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+        ),
+      );
+    }
+  }
+
+  Future<void> _addPhotos() async {
+    if (_photoBusy) return;
+    setState(() => _photoBusy = true);
+    try {
+      final api = context.read<ApiService>();
+      await pickAndUploadProductPhotos(
+        context: context,
+        api: api,
+        productId: widget.productId,
+        currentCount: _photos.length,
+      );
+      if (!mounted) return;
+      await _load(photosOnly: true);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+        ),
+      );
+      setState(() => _photoBusy = false);
+    }
+  }
+
+  Future<void> _onPhotoTap(ProductGalleryPhoto photo) async {
+    if (_photoBusy) return;
+    final action = await showProductPhotoActionsSheet(
+      context,
+      photo,
+      canDelete: _photos.length > 1,
+    );
+    if (!mounted || action == null) return;
+
+    setState(() => _photoBusy = true);
+    try {
+      final api = context.read<ApiService>();
+      if (action == 'primary') {
+        await api.setPrimaryProductPhoto(widget.productId, photo.imageId);
+      } else if (action == 'delete') {
+        await api.deleteProductPhoto(widget.productId, photo.imageId);
+      }
+      if (!mounted) return;
+      await _load(photosOnly: true);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _photoBusy = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(e.toString().replaceFirst('Exception: ', '')),
@@ -335,27 +439,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 ),
               ),
             ),
-          if (_photoCtrl.text.trim().isNotEmpty) ...[
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: AspectRatio(
-                aspectRatio: 16 / 9,
-                child: Image.network(
-                  _photoCtrl.text.trim(),
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    color: const Color(0xFF1E0A32),
-                    alignment: Alignment.center,
-                    child: Icon(
-                      Icons.image_not_supported_outlined,
-                      color: Colors.white.withValues(alpha: 0.4),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-          ],
+          ProductExistingGallery(
+            photos: _photos,
+            busy: _photoBusy,
+            onAddPhotos: _addPhotos,
+            onPhotoTap: _onPhotoTap,
+          ),
+          const SizedBox(height: 20),
           _textField(
             controller: _nameCtrl,
             label: 'Name',
@@ -394,12 +484,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             controller: _stockCtrl,
             label: 'Stock quantity',
             keyboardType: TextInputType.number,
-          ),
-          const SizedBox(height: 14),
-          _textField(
-            controller: _photoCtrl,
-            label: 'Photo URL',
-            onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 14),
           _textField(controller: _linkCtrl, label: 'Product link'),

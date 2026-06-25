@@ -45,6 +45,7 @@ export 'package:autobus/features/customers/manage_customers.dart';
 export 'package:autobus/features/customers/add_customer_page.dart';
 export 'package:autobus/features/customers/view_customers_list.dart';
 export 'package:autobus/features/products/manage_products.dart';
+export 'package:autobus/features/products/add_product_screen.dart';
 export 'package:autobus/features/chat/manage_chats.dart';
 export 'package:autobus/features/chat/manage_channels.dart';
 export 'package:autobus/features/chat/channel_catalog.dart';

@@ -122,8 +122,14 @@ class _SignupOtpState extends State<SignupOtp> {
                 padding: const EdgeInsets.only(left: 20.0, right: 20.0),
                 child: TextField(
                   controller: codeController,
-                  decoration: const InputDecoration(
-                    border: UnderlineInputBorder(),
+                  decoration: InputDecoration(
+                    hintText: 'Enter 6-digit OTP',
+                    hintStyle: GoogleFonts.montserrat(
+                      color: Colors.black38,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                    ),
+                    border: const UnderlineInputBorder(),
                   ),
                   keyboardType: TextInputType.number,
                 ),

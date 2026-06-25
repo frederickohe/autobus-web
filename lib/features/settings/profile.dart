@@ -560,6 +560,7 @@ class _ProfileState extends State<Profile> {
                                           _input(
                                             label: 'Full name',
                                             controller: fullnameController,
+                                            hintText: 'Enter your full name',
                                             textInputAction:
                                                 TextInputAction.next,
                                             validator: (v) {
@@ -581,6 +582,7 @@ class _ProfileState extends State<Profile> {
                                           _input(
                                             label: 'Phone',
                                             controller: phoneController,
+                                            hintText: '0241234567',
                                             keyboardType: TextInputType.phone,
                                             textInputAction:
                                                 TextInputAction.next,
@@ -589,6 +591,7 @@ class _ProfileState extends State<Profile> {
                                           _input(
                                             label: 'Ghana card',
                                             controller: ghanaCardController,
+                                            hintText: 'GHA-XXXXXXXXXX-X',
                                             textInputAction:
                                                 TextInputAction.next,
                                           ),
@@ -596,6 +599,7 @@ class _ProfileState extends State<Profile> {
                                           _input(
                                             label: 'Nationality',
                                             controller: nationalityController,
+                                            hintText: 'e.g. Ghanaian',
                                             textInputAction:
                                                 TextInputAction.next,
                                           ),
@@ -603,6 +607,7 @@ class _ProfileState extends State<Profile> {
                                           _input(
                                             label: 'Date of birth',
                                             controller: dobController,
+                                            hintText: 'Tap to select (DD/MM/YYYY)',
                                             readOnly: true,
                                             onTap: _pickDateOfBirth,
                                             suffixIcon: Icons.calendar_today,
@@ -613,6 +618,7 @@ class _ProfileState extends State<Profile> {
                                           _input(
                                             label: 'Staff ID',
                                             controller: staffIdController,
+                                            hintText: 'Enter your staff ID',
                                             textInputAction:
                                                 TextInputAction.next,
                                           ),
@@ -629,6 +635,7 @@ class _ProfileState extends State<Profile> {
                                           _input(
                                             label: 'Company',
                                             controller: companyController,
+                                            hintText: 'Enter company name',
                                             textInputAction:
                                                 TextInputAction.next,
                                           ),
@@ -636,6 +643,7 @@ class _ProfileState extends State<Profile> {
                                           _input(
                                             label: 'Current branch',
                                             controller: currentBranchController,
+                                            hintText: 'Enter branch name',
                                             textInputAction:
                                                 TextInputAction.next,
                                           ),
@@ -643,6 +651,7 @@ class _ProfileState extends State<Profile> {
                                           _input(
                                             label: 'Address',
                                             controller: addressController,
+                                            hintText: 'Enter street address',
                                             textInputAction:
                                                 TextInputAction.next,
                                           ),
@@ -650,6 +659,7 @@ class _ProfileState extends State<Profile> {
                                           _input(
                                             label: 'Location',
                                             controller: locationController,
+                                            hintText: 'Enter city or region',
                                             textInputAction:
                                                 TextInputAction.next,
                                           ),
@@ -658,6 +668,7 @@ class _ProfileState extends State<Profile> {
                                             label: 'WhatsApp number',
                                             controller:
                                                 whatsappNumberController,
+                                            hintText: '0241234567',
                                             keyboardType: TextInputType.phone,
                                             textInputAction:
                                                 TextInputAction.next,
@@ -666,6 +677,7 @@ class _ProfileState extends State<Profile> {
                                           _input(
                                             label: 'Facebook URL',
                                             controller: facebookUrlController,
+                                            hintText: 'https://facebook.com/username',
                                             keyboardType: TextInputType.url,
                                             textInputAction:
                                                 TextInputAction.next,
@@ -674,6 +686,7 @@ class _ProfileState extends State<Profile> {
                                           _input(
                                             label: 'LinkedIn URL',
                                             controller: linkedinUrlController,
+                                            hintText: 'https://linkedin.com/in/username',
                                             keyboardType: TextInputType.url,
                                             textInputAction:
                                                 TextInputAction.next,
@@ -682,6 +695,7 @@ class _ProfileState extends State<Profile> {
                                           _input(
                                             label: 'Twitter/X URL',
                                             controller: twitterUrlController,
+                                            hintText: 'https://x.com/username',
                                             keyboardType: TextInputType.url,
                                             textInputAction:
                                                 TextInputAction.next,
@@ -690,6 +704,7 @@ class _ProfileState extends State<Profile> {
                                           _input(
                                             label: 'Instagram URL',
                                             controller: instagramUrlController,
+                                            hintText: 'https://instagram.com/username',
                                             keyboardType: TextInputType.url,
                                             textInputAction:
                                                 TextInputAction.done,
@@ -904,6 +919,7 @@ class _ProfileState extends State<Profile> {
     TextInputAction textInputAction = TextInputAction.next,
     bool readOnly = false,
     String? helperText,
+    String? hintText,
     IconData? suffixIcon,
     VoidCallback? onTap,
     String? Function(String?)? validator,
@@ -918,6 +934,7 @@ class _ProfileState extends State<Profile> {
       decoration: _underlineDecoration(
         label: label,
         helperText: helperText,
+        hintText: hintText,
         suffixIcon: suffixIcon,
         readOnly: readOnly,
       ),
@@ -927,12 +944,19 @@ class _ProfileState extends State<Profile> {
   InputDecoration _underlineDecoration({
     required String label,
     String? helperText,
+    String? hintText,
     IconData? suffixIcon,
     bool readOnly = false,
   }) {
     return InputDecoration(
       labelText: label,
       helperText: helperText,
+      hintText: hintText,
+      hintStyle: GoogleFonts.montserrat(
+        color: Colors.black.withOpacity(0.35),
+        fontSize: 14,
+        fontWeight: FontWeight.w400,
+      ),
       border: const UnderlineInputBorder(),
       enabledBorder: UnderlineInputBorder(
         borderSide: BorderSide(color: Colors.black.withOpacity(0.25)),

@@ -2143,7 +2143,7 @@ class _SelectOutletPageState extends State<_SelectOutletPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Prefer Postiz-linked channels (same flow as Link Outlet), then Blotato accounts.
+    // Prefer Postiz-linked channels (same flow as Link Social Media), then Blotato accounts.
     final useConnected = !_loadingAccounts && (_usePostiz || _useBlotato);
     final gridCount =
         _usePostiz ? _postizIntegrations.length : _blotatoAccounts.length;
@@ -2170,7 +2170,7 @@ class _SelectOutletPageState extends State<_SelectOutletPage> {
                       Icon(Icons.link_off, size: 48, color: Colors.grey.shade400),
                       const SizedBox(height: 16),
                       Text(
-                        'No outlets linked yet. Use Link Outlet to connect your social channels in Postiz; they will appear here for publishing.',
+                        'No outlets linked yet. Use Link Social Media to connect your social channels in Postiz; they will appear here for publishing.',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.montserrat(
                           fontSize: 13,
@@ -2180,7 +2180,7 @@ class _SelectOutletPageState extends State<_SelectOutletPage> {
                       ),
                       const SizedBox(height: 24),
                       _DarkButton(
-                        label: 'Open Link Outlet',
+                        label: 'Open Link Social Media',
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute<void>(
@@ -2374,7 +2374,7 @@ class _SelectOutletPageState extends State<_SelectOutletPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Connect an outlet in Marketing → Link Outlet (Postiz) or link a social account, then try again.',
+              'Connect an outlet in Marketing → Link Social Media (Postiz) or link a social account, then try again.',
               style: GoogleFonts.montserrat(color: Colors.white, fontSize: 13),
             ),
             backgroundColor: Colors.orange.shade800,

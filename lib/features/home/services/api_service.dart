@@ -1772,6 +1772,128 @@ class ApiService {
     );
   }
 
+  /// GET /api/v1/products/{productId}/photos
+  Future<List<Map<String, dynamic>>> listProductPhotos(
+    String productId,
+  ) async {
+    final uri = Uri.parse(
+      '$baseUrl/products/${Uri.encodeComponent(productId)}/photos',
+    );
+    final response = await httpClient.get(uri);
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data is List) {
+        return data
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      }
+    }
+    if (response.statusCode == 401) {
+      throw Exception('Session expired');
+    }
+    if (response.statusCode == 404) {
+      throw Exception('Product not found');
+    }
+    throw Exception(
+      _httpDetailMessage(response.body) ??
+          'Failed to load product photos (${response.statusCode})',
+    );
+  }
+
+  /// POST /api/v1/products/{productId}/photos — upload multiple image files.
+  Future<Map<String, dynamic>> uploadProductPhotos(
+    String productId, {
+    List<File>? files,
+    List<({List<int> bytes, String filename})>? fileBytes,
+  }) async {
+    final fileList = files ?? const <File>[];
+    final bytesList = fileBytes ?? const <({List<int> bytes, String filename})>[];
+    if (fileList.isEmpty && bytesList.isEmpty) {
+      throw ArgumentError('At least one image file is required');
+    }
+
+    final uri = Uri.parse(
+      '$baseUrl/products/${Uri.encodeComponent(productId)}/photos',
+    );
+    final request = http.MultipartRequest('POST', uri);
+    for (final file in fileList) {
+      request.files.add(
+        await http.MultipartFile.fromPath('files', file.path),
+      );
+    }
+    for (final entry in bytesList) {
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'files',
+          entry.bytes,
+          filename: entry.filename,
+        ),
+      );
+    }
+
+    final streamed = await httpClient.send(request);
+    final response = await http.Response.fromStream(streamed);
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final data = jsonDecode(response.body);
+      if (data is Map<String, dynamic>) return data;
+      if (data is Map) return Map<String, dynamic>.from(data);
+    }
+    if (response.statusCode == 401) {
+      throw Exception('Session expired');
+    }
+    throw Exception(
+      _httpDetailMessage(response.body) ??
+          'Failed to upload product photos (${response.statusCode})',
+    );
+  }
+
+  /// DELETE /api/v1/products/{productId}/photos/{imageId}
+  Future<Map<String, dynamic>> deleteProductPhoto(
+    String productId,
+    String imageId,
+  ) async {
+    final uri = Uri.parse(
+      '$baseUrl/products/${Uri.encodeComponent(productId)}/photos/${Uri.encodeComponent(imageId)}',
+    );
+    final response = await httpClient.delete(uri);
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data is Map<String, dynamic>) return data;
+      if (data is Map) return Map<String, dynamic>.from(data);
+    }
+    if (response.statusCode == 401) {
+      throw Exception('Session expired');
+    }
+    throw Exception(
+      _httpDetailMessage(response.body) ??
+          'Failed to delete product photo (${response.statusCode})',
+    );
+  }
+
+  /// PATCH /api/v1/products/{productId}/photos/{imageId}/primary
+  Future<Map<String, dynamic>> setPrimaryProductPhoto(
+    String productId,
+    String imageId,
+  ) async {
+    final uri = Uri.parse(
+      '$baseUrl/products/${Uri.encodeComponent(productId)}/photos/${Uri.encodeComponent(imageId)}/primary',
+    );
+    final response = await httpClient.patch(uri);
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data is Map<String, dynamic>) return data;
+      if (data is Map) return Map<String, dynamic>.from(data);
+    }
+    if (response.statusCode == 401) {
+      throw Exception('Session expired');
+    }
+    throw Exception(
+      _httpDetailMessage(response.body) ??
+          'Failed to set cover photo (${response.statusCode})',
+    );
+  }
+
   /// GET /api/v1/conversations/session/{sessionId} — full session with history.
   Future<Map<String, dynamic>> getConversationSession(int sessionId) async {
     final uri = Uri.parse('$baseUrl/conversations/session/$sessionId');

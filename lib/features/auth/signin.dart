@@ -122,7 +122,7 @@ class _SigninState extends State<Signin> {
             WebAuthField(
               label: 'Your email*',
               controller: emailController,
-              hint: 'Enter your email',
+              hint: 'Enter email or username',
               keyboardType: TextInputType.emailAddress,
               enabled: !isLoading,
             ),
@@ -297,6 +297,12 @@ class _SigninState extends State<Signin> {
                                 border: const UnderlineInputBorder(),
                                 contentPadding: const EdgeInsets.symmetric(
                                   vertical: 12,
+                                ),
+                                hintText: 'Enter email or username',
+                                hintStyle: GoogleFonts.montserrat(
+                                  color: Colors.black38,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w400,
                                 ),
                               ),
                             ),

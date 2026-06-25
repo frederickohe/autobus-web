@@ -114,9 +114,15 @@ class _RecoverAccountState extends State<RecoverAccount> {
                 padding: const EdgeInsets.only(left: 20.0, right: 20.0),
                 child: TextField(
                   controller: emailController,
-                  decoration: const InputDecoration(
-                    hintText: '',
-                    border: UnderlineInputBorder(),
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    hintText: 'name@example.com',
+                    hintStyle: GoogleFonts.montserrat(
+                      color: Colors.black38,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                    ),
+                    border: const UnderlineInputBorder(),
                   ),
                 ),
               ),

@@ -1,4 +1,5 @@
 import 'package:autobus/barrel.dart';
+import 'package:autobus/features/web/shell/web_app_controller.dart';
 import 'package:autobus/features/web/shell/web_app_loading_screen.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
@@ -174,8 +175,14 @@ class SubscriptionGuard extends StatelessWidget {
         final subscribed = data?.subscribed == true;
         print('Subscribed: $subscribed, Email: ${data?.email}');
         if (subscribed) {
-          print('✓ Showing Welcome Screen');
-          return const Welcome();
+          print('✓ Showing Home Screen');
+          if (kIsWeb) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              WebAppController.instance.enterDashboardShell(navId: 'home');
+            });
+            return const WebAppLoadingScreen();
+          }
+          return const Home();
         }
 
         print('✗ Showing SelectPlan Screen');

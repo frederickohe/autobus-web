@@ -12,8 +12,8 @@ class AuthChoicePage extends StatelessWidget {
       PageTransition(
         type: PageTransitionType.rightToLeftWithFade,
         childCurrent: const AuthChoicePage(),
-        duration: const Duration(milliseconds: 1000),
-        reverseDuration: const Duration(milliseconds: 800),
+        duration: const Duration(milliseconds: 350),
+        reverseDuration: const Duration(milliseconds: 300),
         child: const Signup(),
       ),
     );
@@ -24,8 +24,8 @@ class AuthChoicePage extends StatelessWidget {
       PageTransition(
         type: PageTransitionType.rightToLeftWithFade,
         childCurrent: const AuthChoicePage(),
-        duration: const Duration(milliseconds: 1000),
-        reverseDuration: const Duration(milliseconds: 800),
+        duration: const Duration(milliseconds: 350),
+        reverseDuration: const Duration(milliseconds: 300),
         child: const Signin(),
       ),
     );

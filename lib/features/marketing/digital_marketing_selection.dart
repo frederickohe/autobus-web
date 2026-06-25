@@ -15,8 +15,6 @@ class DigitalMarketingSelection extends StatefulWidget {
 class _DigitalMarketingSelectionState extends State<DigitalMarketingSelection> {
   final Set<_MarketingType> _selected = <_MarketingType>{};
 
-  static const _accent = Color(0xFF251446);
-
   MarketingContentType _mapType(_MarketingType type) {
     switch (type) {
       case _MarketingType.pictures:
@@ -69,9 +67,7 @@ class _DigitalMarketingSelectionState extends State<DigitalMarketingSelection> {
         width: double.infinity,
         height: 144,
         decoration: BoxDecoration(
-          color: selected
-              ? const Color(0xFF7C3AED).withValues(alpha: 0.14)
-              : Colors.white.withValues(alpha: 0.03),
+          color: Colors.white.withValues(alpha: 0.03),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: selected
@@ -79,21 +75,13 @@ class _DigitalMarketingSelectionState extends State<DigitalMarketingSelection> {
                 : Colors.white.withValues(alpha: 0.14),
             width: selected ? 2.2 : 1.0,
           ),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: _accent.withValues(alpha: 0.12),
-                    blurRadius: 18,
-                    offset: const Offset(0, 6),
-                  ),
-                ]
-              : [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),

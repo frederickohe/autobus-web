@@ -92,7 +92,7 @@ class _ManageOutletsState extends State<ManageOutlets> {
                       const SizedBox(width: 18),
                       Expanded(
                         child: Text(
-                          'Link Outlet',
+                          'Link Social Media',
                           style: ManageScreenStyle.headerTitleStyle(),
                         ),
                       ),
@@ -172,7 +172,7 @@ class _ManageOutletsState extends State<ManageOutlets> {
                                     ),
                                   const SizedBox(height: 28),
                                   Text(
-                                    'Select to Link Outlet',
+                                    'Select to Link Social Media',
                                     textAlign: TextAlign.center,
                                     style: GoogleFonts.montserrat(
                                       color: Colors.white.withValues(alpha: 0.9),

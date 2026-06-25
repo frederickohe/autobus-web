@@ -95,7 +95,7 @@ class ProductChatImageStrip extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'Tap to add. Images upload when you send your message.',
+          'Tap to add one or more images. They upload when you send your message.',
           style: GoogleFonts.montserrat(
             fontSize: 10,
             fontWeight: FontWeight.w400,
