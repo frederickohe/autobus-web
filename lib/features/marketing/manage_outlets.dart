@@ -50,20 +50,11 @@ class _ManageOutletsState extends State<ManageOutlets> {
 
   Future<void> _linkOutlet(OutletOption outlet) async {
     final api = context.read<ApiService>();
-
-    if (outlet.usesDirectConnect) {
-      await openEmbeddedPlatformSession(
-        context,
-        title: 'Link ${outlet.label}',
-        fetchSession: () => api.initiateSocialConnect(outlet.connectSlug!),
-      );
-    } else {
-      await openEmbeddedPlatformSession(
-        context,
-        title: 'Link ${outlet.label}',
-        fetchSession: () => api.postizAutoLogin(),
-      );
-    }
+    await openEmbeddedPlatformSession(
+      context,
+      title: 'Link ${outlet.label}',
+      fetchSession: () => api.postizAutoLogin(),
+    );
 
     if (mounted) {
       await _refreshIntegrations();
@@ -183,7 +174,7 @@ class _ManageOutletsState extends State<ManageOutlets> {
                                   ),
                                   const SizedBox(height: 12),
                                   Text(
-                                    'Postiz opens in-app: you are signed in automatically, then you connect the social account on the integrations page.',
+                                    'Postiz opens in-app: sign in with your Postiz account, then tap Continue to connect your social channel on the integrations page.',
                                     textAlign: TextAlign.center,
                                     style: GoogleFonts.montserrat(
                                       color: Colors.white.withValues(alpha: 0.65),

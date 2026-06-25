@@ -66,42 +66,10 @@ class _EmbeddedPlatformWebViewState extends State<EmbeddedPlatformWebView> {
     }
 
     if (_session.isPostiz) {
-      final loginUrl = resolveEmbeddedPlatformUrl(_session.postizLoginUrl!.trim());
-      final body = _session.postizLoginBody!;
-      // Must be a JSON string for fetch(); a JS object becomes "[object Object]".
-      final bodyJsonString = jsonEncode(body);
-      final html =
-          '''
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head>
-<body style="font-family:sans-serif;padding:24px;text-align:center;">
-<p>Signing you in to Postiz…</p>
-<script>
-(async function() {
-  try {
-    const res = await fetch(${jsonEncode(loginUrl)}, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: ${jsonEncode(bodyJsonString)}
-    });
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(text || ('HTTP ' + res.status));
-    }
-    window.location.replace(${jsonEncode(auth)});
-  } catch (e) {
-    const msg = (e && e.message) ? e.message : 'Sign-in failed';
-    document.body.innerHTML = '<p style="color:#b91c1c">' + msg + '</p><p style="font-size:12px;color:#666">Close and try again.</p>';
-  }
-})();
-</script>
-</body>
-</html>
-''';
-      _loginStepDone = true;
-      await _controller.loadHtmlString(html, baseUrl: loginUrl);
+      final pageUrl = resolveEmbeddedPlatformUrl(
+        _session.postizLoginPageUrl!.trim(),
+      );
+      await _controller.loadRequest(Uri.parse(pageUrl));
       return;
     }
 

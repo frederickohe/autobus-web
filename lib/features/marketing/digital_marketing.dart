@@ -240,7 +240,7 @@ class _PromptBar extends StatelessWidget {
     required this.hint,
     this.onAttach,
     this.onGenerate,
-    this.generateIcon = Icons.send_rounded,
+    this.generateIcon = Icons.auto_awesome,
   });
 
   @override
@@ -917,7 +917,7 @@ class _GenerateMediaPageState extends State<_GenerateMediaPage> {
             hint: _activeContent.promptHint,
             onAttach: _isText ? null : _pickAndAttachMedia,
             onGenerate: canGenerate ? _generate : null,
-            generateIcon: _isText ? Icons.send_rounded : Icons.auto_awesome,
+            generateIcon: Icons.auto_awesome,
           ),
 
           const SizedBox(height: 16),

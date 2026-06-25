@@ -9,18 +9,12 @@ class OutletOption {
   final Color iconColor;
   final Set<String> postizIdentifiers;
 
-  /// When set, uses `GET /social/connect/{slug}` for direct provider OAuth via Postiz.
-  final String? connectSlug;
-
   const OutletOption({
     required this.label,
     required this.icon,
     required this.iconColor,
     this.postizIdentifiers = const {},
-    this.connectSlug,
   });
-
-  bool get usesDirectConnect => connectSlug != null && connectSlug!.isNotEmpty;
 
   bool matchesIntegration(PostizIntegration integration) {
     if (!integration.isActive) return false;
@@ -57,35 +51,30 @@ class OutletCatalog {
       icon: FontAwesomeIcons.linkedinIn,
       iconColor: Color(0xFF0A66C2),
       postizIdentifiers: {'linkedin', 'linkedin-page'},
-      connectSlug: 'linkedin',
     ),
     OutletOption(
       label: 'Facebook',
       icon: FontAwesomeIcons.facebookF,
       iconColor: Color(0xFF1877F2),
       postizIdentifiers: {'facebook'},
-      connectSlug: 'facebook',
     ),
     OutletOption(
       label: 'WhatsApp Status',
       icon: FontAwesomeIcons.whatsapp,
       iconColor: Color(0xFF25D366),
       postizIdentifiers: {'whatsapp'},
-      connectSlug: 'whatsapp',
     ),
     OutletOption(
       label: 'Instagram',
       icon: FontAwesomeIcons.instagram,
       iconColor: Color(0xFFDD2A7B),
       postizIdentifiers: {'instagram', 'instagram-standalone'},
-      connectSlug: 'instagram',
     ),
     OutletOption(
       label: 'X',
       icon: FontAwesomeIcons.xTwitter,
       iconColor: Colors.white,
       postizIdentifiers: {'x'},
-      connectSlug: 'x',
     ),
     OutletOption(
       label: 'YouTube',

@@ -1164,8 +1164,12 @@ class ApiService {
     );
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      return (data['response'] ?? data['message'] ?? data['reply'] ?? '')
-          .toString();
+      if (data is String) return data;
+      if (data is Map) {
+        return (data['response'] ?? data['message'] ?? data['reply'] ?? '')
+            .toString();
+      }
+      return data.toString();
     }
     throw Exception('Agent error: ${response.statusCode}');
   }

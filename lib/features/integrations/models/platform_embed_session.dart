@@ -3,8 +3,8 @@ class PlatformEmbedSession {
   final String authorizationUrl;
   final String? message;
 
-  /// Postiz: POST JSON to this URL (`postiz_login.url`).
-  final String? postizLoginUrl;
+  /// Postiz: load this page so the user can sign in (`postiz_login.login_page_url`).
+  final String? postizLoginPageUrl;
   final Map<String, dynamic>? postizLoginBody;
 
   /// Chatwoot: load this page and submit `chatwoot_login.body` (`login_page_url`).
@@ -14,16 +14,14 @@ class PlatformEmbedSession {
   const PlatformEmbedSession({
     required this.authorizationUrl,
     this.message,
-    this.postizLoginUrl,
+    this.postizLoginPageUrl,
     this.postizLoginBody,
     this.chatwootLoginPageUrl,
     this.chatwootLoginBody,
   });
 
   bool get isPostiz =>
-      postizLoginUrl != null &&
-      postizLoginUrl!.isNotEmpty &&
-      postizLoginBody != null;
+      postizLoginPageUrl != null && postizLoginPageUrl!.isNotEmpty;
 
   bool get isChatwoot =>
       chatwootLoginPageUrl != null &&
@@ -54,12 +52,12 @@ class PlatformEmbedSession {
     }
 
     if (loginKey == 'postiz_login') {
-      final url = (loginMap?['url'] ?? '').toString();
+      final pageUrl = (loginMap?['login_page_url'] ?? '').toString();
       final body = loginMap?['body'];
       return PlatformEmbedSession(
         authorizationUrl: authUrl,
         message: json['message']?.toString(),
-        postizLoginUrl: url.isEmpty ? null : url,
+        postizLoginPageUrl: pageUrl.isEmpty ? null : pageUrl,
         postizLoginBody: body is Map ? Map<String, dynamic>.from(body) : null,
       );
     }
