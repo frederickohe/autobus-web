@@ -170,7 +170,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       Expanded(
                         child: Text(
                           'Add Product',
-                          style: ManageScreenStyle.headerTitleStyle(),
+                          style: ManageScreenStyle.headerTitleStyle(context),
                         ),
                       ),
                     ],

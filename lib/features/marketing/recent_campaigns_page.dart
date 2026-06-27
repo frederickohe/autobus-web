@@ -104,7 +104,7 @@ class _RecentCampaignsPageState extends State<RecentCampaignsPage> {
                       Expanded(
                         child: Text(
                           'Recent campaigns',
-                          style: ManageScreenStyle.headerTitleStyle(),
+                          style: ManageScreenStyle.headerTitleStyle(context),
                         ),
                       ),
                     ],

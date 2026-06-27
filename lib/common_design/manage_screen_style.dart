@@ -38,6 +38,32 @@ class ManageScreenStyle {
   static Color get headerRingBorder =>
       useLightTheme ? headerRingBorderLight : headerRingBorderDark;
 
+  /// White header chrome on dark/gradient screens; dark chrome on the web shell's white hubs.
+  static bool headerOnDarkBackground(
+    BuildContext context, {
+    bool? onDarkBackground,
+  }) {
+    if (onDarkBackground != null) return onDarkBackground;
+    if (!useLightTheme) return true;
+    return Navigator.of(context).canPop();
+  }
+
+  static Color headerRingBorderFor(
+    BuildContext context, {
+    bool? onDarkBackground,
+  }) =>
+      headerOnDarkBackground(context, onDarkBackground: onDarkBackground)
+      ? headerRingBorderDark
+      : headerRingBorderLight;
+
+  static Color headerForegroundFor(
+    BuildContext context, {
+    bool? onDarkBackground,
+  }) =>
+      headerOnDarkBackground(context, onDarkBackground: onDarkBackground)
+      ? Colors.white
+      : lightPrimaryText;
+
   /// Same vertical gradient as the [Home] dashboard background (mobile / non-shell).
   static const BoxDecoration homeDashboardBodyDecoration = BoxDecoration(
     gradient: LinearGradient(
@@ -62,16 +88,23 @@ class ManageScreenStyle {
     ),
   );
 
-  static TextStyle headerTitleStyle() => GoogleFonts.inter(
-    color: useLightTheme ? lightPrimaryText : Colors.white,
-    fontSize: 22,
-    fontWeight: FontWeight.w300,
-    letterSpacing: -0.2,
-  );
+  static TextStyle headerTitleStyle(
+    BuildContext context, {
+    bool? onDarkBackground,
+  }) =>
+      GoogleFonts.inter(
+        color: headerForegroundFor(
+          context,
+          onDarkBackground: onDarkBackground,
+        ),
+        fontSize: useLightTheme ? 18 : 22,
+        fontWeight: FontWeight.w300,
+        letterSpacing: -0.2,
+      );
 
   static TextStyle hubWelcomeTitleStyle() => GoogleFonts.montserrat(
     color: useLightTheme ? lightPrimaryText : Colors.white,
-    fontSize: 19,
+    fontSize: useLightTheme ? 16 : 19,
     fontWeight: FontWeight.w500,
     letterSpacing: -0.3,
   );
@@ -80,14 +113,14 @@ class ManageScreenStyle {
     color: useLightTheme
         ? lightSecondaryText
         : Colors.white.withValues(alpha: 0.9),
-    fontSize: 14,
+    fontSize: useLightTheme ? 12 : 14,
     fontWeight: FontWeight.w300,
     height: 1.6,
   );
 
   static TextStyle hubSectionTitleStyle() => GoogleFonts.montserrat(
     color: useLightTheme ? lightPrimaryText : Colors.white,
-    fontSize: 16,
+    fontSize: useLightTheme ? 14 : 16,
     fontWeight: FontWeight.w600,
   );
 
@@ -113,6 +146,7 @@ class ManageScreenHeader extends StatelessWidget {
   final String? creditCategory;
   final VoidCallback? onBackPressed;
   final EdgeInsetsGeometry padding;
+  final bool? onDarkBackground;
 
   const ManageScreenHeader({
     super.key,
@@ -121,6 +155,7 @@ class ManageScreenHeader extends StatelessWidget {
     this.creditCategory,
     this.onBackPressed,
     this.padding = const EdgeInsets.fromLTRB(24, 24, 24, 0),
+    this.onDarkBackground,
   });
 
   @override
@@ -137,7 +172,10 @@ class ManageScreenHeader extends StatelessWidget {
             if (!hideBack)
               Align(
                 alignment: Alignment.centerLeft,
-                child: ManageScreenBackButton(onPressed: onBackPressed),
+                child: ManageScreenBackButton(
+                  onPressed: onBackPressed,
+                  onDarkBackground: onDarkBackground,
+                ),
               ),
             Positioned.fill(
               child: Center(
@@ -148,7 +186,10 @@ class ManageScreenHeader extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
-                    style: ManageScreenStyle.headerTitleStyle(),
+                    style: ManageScreenStyle.headerTitleStyle(
+                      context,
+                      onDarkBackground: onDarkBackground,
+                    ),
                   ),
                 ),
               ),
@@ -170,8 +211,13 @@ class ManageScreenHeader extends StatelessWidget {
 
 class ManageScreenBackButton extends StatelessWidget {
   final VoidCallback? onPressed;
+  final bool? onDarkBackground;
 
-  const ManageScreenBackButton({super.key, this.onPressed});
+  const ManageScreenBackButton({
+    super.key,
+    this.onPressed,
+    this.onDarkBackground,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -179,7 +225,10 @@ class ManageScreenBackButton extends StatelessWidget {
       return const SizedBox(width: 48, height: 48);
     }
 
-    final light = ManageScreenStyle.useLightTheme;
+    final onDark = ManageScreenStyle.headerOnDarkBackground(
+      context,
+      onDarkBackground: onDarkBackground,
+    );
 
     return Material(
       color: Colors.transparent,
@@ -191,11 +240,16 @@ class ManageScreenBackButton extends StatelessWidget {
           width: 48,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: ManageScreenStyle.headerRingBorder),
+            border: Border.all(
+              color: ManageScreenStyle.headerRingBorderFor(
+                context,
+                onDarkBackground: onDarkBackground,
+              ),
+            ),
           ),
           child: Icon(
             Icons.arrow_back_ios_new,
-            color: light ? ManageScreenStyle.lightPrimaryText : Colors.white,
+            color: onDark ? Colors.white : ManageScreenStyle.lightPrimaryText,
             size: 20,
           ),
         ),

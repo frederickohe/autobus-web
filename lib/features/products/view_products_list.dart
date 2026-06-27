@@ -412,7 +412,7 @@ class _ViewProductsPageState extends State<ViewProductsPage> {
                       Expanded(
                         child: Text(
                           'Product catalogue',
-                          style: ManageScreenStyle.headerTitleStyle(),
+                          style: ManageScreenStyle.headerTitleStyle(context),
                         ),
                       ),
                     ],

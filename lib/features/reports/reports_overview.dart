@@ -1,4 +1,5 @@
 import 'package:autobus/barrel.dart';
+import 'package:autobus/features/reports/dashboard_charts.dart';
 import 'package:autobus/features/reports/report_period.dart';
 import 'package:autobus/features/reports/reports_snapshot.dart';
 
@@ -76,7 +77,6 @@ class _ReportsOverviewPanelState extends State<ReportsOverviewPanel> {
   ReportPeriod _period = ReportPeriod.thisMonth;
   ReportsSnapshot? _snapshot;
   bool _loading = true;
-  String? _loadError;
 
   @override
   void initState() {
@@ -87,7 +87,6 @@ class _ReportsOverviewPanelState extends State<ReportsOverviewPanel> {
   Future<void> _load() async {
     setState(() {
       _loading = true;
-      _loadError = null;
     });
     try {
       final snapshot = await loadReportsSnapshot(
@@ -99,12 +98,11 @@ class _ReportsOverviewPanelState extends State<ReportsOverviewPanel> {
         _snapshot = snapshot;
         _loading = false;
       });
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       setState(() {
-        _loadError = e.toString().replaceFirst('Exception: ', '');
         _loading = false;
-        _snapshot = ReportsSnapshot(period: _period, error: _loadError);
+        _snapshot = ReportsSnapshot(period: _period);
       });
     }
   }
@@ -136,14 +134,12 @@ class _ReportsOverviewPanelState extends State<ReportsOverviewPanel> {
             child: Center(child: AutobusLoadingIndicator()),
           )
         else ...[
-          if (_loadError != null) ...[
+          if (_snapshot case final snap?) ...[
             Padding(
               padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-              child: ReportsErrorBanner(message: _loadError!),
+              child: DashboardAnalyticsSection(snapshot: snap),
             ),
-            const SizedBox(height: 16),
-          ],
-          if (_snapshot case final snap?) ...[
+            const SizedBox(height: 24),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
               child: ReportsOverviewSection(snapshot: snap),
@@ -184,6 +180,8 @@ class ReportsPeriodSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final light = ManageScreenStyle.useLightTheme;
+
     return SizedBox(
       height: 40,
       child: ListView.separated(
@@ -199,16 +197,22 @@ class ReportsPeriodSelector extends StatelessWidget {
             selected: isSelected,
             onSelected: (_) => onSelected(period),
             labelStyle: GoogleFonts.montserrat(
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: FontWeight.w500,
-              color: isSelected ? Colors.white : Colors.white70,
+              color: isSelected
+                  ? Colors.white
+                  : (light
+                      ? ManageScreenStyle.lightSecondaryText
+                      : Colors.white70),
             ),
-            selectedColor: const Color(0xFF5A2D82),
-            backgroundColor: const Color(0xFF1A0F2E),
+            selectedColor: light ? CustColors.mainCol : const Color(0xFF5A2D82),
+            backgroundColor: light ? Colors.white : const Color(0xFF1A0F2E),
             side: BorderSide(
               color: isSelected
-                  ? const Color(0xFF7B4BB7)
-                  : const Color(0xFF3F1163),
+                  ? (light ? CustColors.mainCol : const Color(0xFF7B4BB7))
+                  : (light
+                      ? ManageScreenStyle.lightBorder
+                      : const Color(0xFF3F1163)),
             ),
             checkmarkColor: Colors.white,
             showCheckmark: false,
@@ -231,16 +235,10 @@ class ReportsOverviewSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Overview · ${snap.period.label}',
+          'Operations · ${snap.period.label}',
           style: ManageScreenStyle.hubSectionTitleStyle(),
         ),
         const SizedBox(height: 16),
-        ReportsHeroMetricCard(
-          label: 'Revenue',
-          value: formatReportCurrency(snap.revenue),
-          icon: Icons.trending_up,
-        ),
-        const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
@@ -293,27 +291,6 @@ class ReportsOverviewSection extends StatelessWidget {
                 label: 'Pending / failed',
                 value:
                     '${snap.pendingTransactions} / ${snap.failedTransactions}',
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: ReportsMetricTile(
-                label: 'Order invoices',
-                value: '${snap.orderInvoicesSent}',
-                sub: '${snap.paidOrderInvoices} paid',
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ReportsMetricTile(
-                label: 'Invoiced value',
-                value: formatReportCurrency(snap.orderInvoicesValue),
-                sub:
-                    '${formatReportCurrency(snap.paidOrderInvoicesValue)} collected',
               ),
             ),
           ],

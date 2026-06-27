@@ -144,7 +144,6 @@ class _WebDashboardTopBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: const BoxDecoration(
         color: WebDashboardShell.topBarBackground,
-        border: Border(bottom: BorderSide(color: WebDashboardShell.topBarBorder)),
       ),
       child: Row(
         children: [
@@ -224,7 +223,7 @@ class _WebDashboardSidebar extends StatelessWidget {
                       SizedBox(width: 5),
                       Expanded(
                         child: AutobusWordmark(
-                          fontSize: 10,
+                          fontSize: 8,
                           fontWeight: FontWeight.w600,
                           baseColor: Colors.white70,
                           accentColor: CustColors.logolight,
@@ -257,7 +256,7 @@ class _SidebarNavTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final labelStyle = GoogleFonts.montserrat(
       color: selected ? Colors.white : Colors.white.withValues(alpha: 0.72),
-      fontSize: 14,
+      fontSize: 12,
       fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
     );
 

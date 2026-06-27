@@ -117,7 +117,7 @@ class _AllChatsPageState extends State<AllChatsPage> {
                       Expanded(
                         child: Text(
                           'All Chats',
-                          style: ManageScreenStyle.headerTitleStyle(),
+                          style: ManageScreenStyle.headerTitleStyle(context),
                         ),
                       ),
                     ],

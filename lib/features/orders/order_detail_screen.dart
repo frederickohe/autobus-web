@@ -364,7 +364,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: ManageScreenStyle.headerTitleStyle(),
+                          style: ManageScreenStyle.headerTitleStyle(context),
                         ),
                       ),
                     ],

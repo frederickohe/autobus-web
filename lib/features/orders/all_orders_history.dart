@@ -162,7 +162,7 @@ class _AllOrdersHistoryState extends State<AllOrdersHistory> {
                       Expanded(
                         child: Text(
                           'All Orders',
-                          style: ManageScreenStyle.headerTitleStyle(),
+                          style: ManageScreenStyle.headerTitleStyle(context),
                         ),
                       ),
                     ],

@@ -224,7 +224,7 @@ class _ViewCustomersPageState extends State<ViewCustomersPage> {
                       Expanded(
                         child: Text(
                           'Your customers',
-                          style: ManageScreenStyle.headerTitleStyle(),
+                          style: ManageScreenStyle.headerTitleStyle(context),
                         ),
                       ),
                     ],

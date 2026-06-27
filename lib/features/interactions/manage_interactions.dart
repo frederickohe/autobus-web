@@ -175,7 +175,7 @@ class InteractionHistoryPage extends StatelessWidget {
                       Expanded(
                         child: Text(
                           'Manage Interactions',
-                          style: ManageScreenStyle.headerTitleStyle(),
+                          style: ManageScreenStyle.headerTitleStyle(context),
                         ),
                       ),
                     ],

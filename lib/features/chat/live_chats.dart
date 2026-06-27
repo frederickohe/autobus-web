@@ -118,7 +118,7 @@ class _LiveChatsPageState extends State<LiveChatsPage> {
                       Expanded(
                         child: Text(
                           'Live Chats',
-                          style: ManageScreenStyle.headerTitleStyle(),
+                          style: ManageScreenStyle.headerTitleStyle(context),
                         ),
                       ),
                     ],

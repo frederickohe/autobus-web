@@ -483,6 +483,155 @@ class WebAuthCheckboxRow extends StatelessWidget {
   }
 }
 
+class WebAuthGhanaCardField extends StatelessWidget {
+  const WebAuthGhanaCardField({
+    super.key,
+    required this.digitsController,
+    required this.checkDigitController,
+    required this.checkDigitFocusNode,
+    this.enabled = true,
+  });
+
+  final TextEditingController digitsController;
+  final TextEditingController checkDigitController;
+  final FocusNode checkDigitFocusNode;
+  final bool enabled;
+
+  static const _prefix = 'GHA';
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Ghana Card*',
+          style: GoogleFonts.montserrat(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.black,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            gradient: const LinearGradient(
+              colors: [WebAuthColors.borderStart, WebAuthColors.borderEnd],
+            ),
+          ),
+          padding: const EdgeInsets.all(1),
+          child: Container(
+            height: 56,
+            decoration: BoxDecoration(
+              color: WebAuthColors.fieldFill,
+              borderRadius: BorderRadius.circular(7),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            alignment: Alignment.centerLeft,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _prefix,
+                  style: GoogleFonts.montserrat(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  '-',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.white.withValues(alpha: 0.75),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 80,
+                  child: TextField(
+                    controller: digitsController,
+                    enabled: enabled,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(9),
+                    ],
+                    style: GoogleFonts.montserrat(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.white,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'XXXXXXXXX',
+                      hintStyle: GoogleFonts.montserrat(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.white.withValues(alpha: 0.75),
+                      ),
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    onChanged: (value) {
+                      if (value.length == 9) {
+                        FocusScope.of(
+                          context,
+                        ).requestFocus(checkDigitFocusNode);
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 2),
+                Text(
+                  '-',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.white.withValues(alpha: 0.75),
+                  ),
+                ),
+                SizedBox(
+                  width: 24,
+                  child: TextField(
+                    controller: checkDigitController,
+                    focusNode: checkDigitFocusNode,
+                    enabled: enabled,
+                    keyboardType: TextInputType.number,
+                    textAlign: TextAlign.center,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(1),
+                    ],
+                    style: GoogleFonts.montserrat(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.white,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'X',
+                      hintStyle: GoogleFonts.montserrat(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.white.withValues(alpha: 0.75),
+                      ),
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class WebAuthFooterLink extends StatelessWidget {
   const WebAuthFooterLink({
     super.key,

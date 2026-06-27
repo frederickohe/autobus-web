@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:autobus/barrel.dart';
 import 'package:autobus/features/autochat/models/chat_message.dart';
 import 'package:autobus/features/autochat/services/autochat_repository.dart';
@@ -294,10 +296,24 @@ class _PublicSiteChatbotState extends State<PublicSiteChatbot> {
             decoration: InputDecoration(
               hintText: isPhone ? '+233...' : 'e.g. GreenBrain Tech',
               filled: true,
-              fillColor: const Color(0xFFF3F4F8),
+              fillColor: Colors.white.withValues(alpha: 0.45),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
+                borderSide: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.55),
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.55),
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: _brand.withValues(alpha: 0.35),
+                ),
               ),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 14,
@@ -343,6 +359,30 @@ class _PublicSiteChatbotState extends State<PublicSiteChatbot> {
     );
   }
 
+  Widget _glassBubble({
+    required Widget child,
+    required BorderRadius borderRadius,
+    required Color fillColor,
+    Color? borderColor,
+  }) {
+    return ClipRRect(
+      borderRadius: borderRadius,
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          decoration: BoxDecoration(
+            color: fillColor,
+            borderRadius: borderRadius,
+            border: Border.all(
+              color: borderColor ?? Colors.white.withValues(alpha: 0.45),
+            ),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+
   Widget _buildChatArea() {
     return Expanded(
       child: Column(
@@ -360,21 +400,28 @@ class _PublicSiteChatbotState extends State<PublicSiteChatbot> {
                       isUser ? Alignment.centerRight : Alignment.centerLeft,
                   child: Container(
                     margin: const EdgeInsets.symmetric(vertical: 4),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
                     constraints: const BoxConstraints(maxWidth: 260),
-                    decoration: BoxDecoration(
-                      color: isUser ? const Color(0xFFEBEBEB) : _brand,
+                    child: _glassBubble(
                       borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Text(
-                      m.text,
-                      style: GoogleFonts.montserrat(
-                        fontSize: 13,
-                        height: 1.35,
-                        color: isUser ? _brand : Colors.white,
+                      fillColor: isUser
+                          ? Colors.white.withValues(alpha: 0.55)
+                          : _brand.withValues(alpha: 0.72),
+                      borderColor: isUser
+                          ? Colors.white.withValues(alpha: 0.7)
+                          : _brand.withValues(alpha: 0.35),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        child: Text(
+                          m.text,
+                          style: GoogleFonts.montserrat(
+                            fontSize: 13,
+                            height: 1.35,
+                            color: isUser ? _brand : Colors.white,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -404,10 +451,24 @@ class _PublicSiteChatbotState extends State<PublicSiteChatbot> {
                       hintText: 'Ask a question...',
                       isDense: true,
                       filled: true,
-                      fillColor: const Color(0xFFF3F4F8),
+                      fillColor: Colors.white.withValues(alpha: 0.45),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20),
-                        borderSide: BorderSide.none,
+                        borderSide: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.55),
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.55),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide(
+                          color: _brand.withValues(alpha: 0.35),
+                        ),
                       ),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14,
@@ -443,79 +504,117 @@ class _PublicSiteChatbotState extends State<PublicSiteChatbot> {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (_open)
-            Material(
-              elevation: 12,
+            ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              color: Colors.white,
-              child: Container(
-                width: panelWidth,
-                height: 460,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE4E7F0)),
-                ),
-                child: Column(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 12,
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                child: Container(
+                  width: panelWidth,
+                  height: 460,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.58),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.72),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _brand.withValues(alpha: 0.14),
+                        blurRadius: 28,
+                        offset: const Offset(0, 10),
                       ),
-                      decoration: const BoxDecoration(
-                        color: _brand,
-                        borderRadius: BorderRadius.vertical(
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
                           top: Radius.circular(16),
                         ),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.smart_toy_outlined,
-                            color: Colors.white,
-                            size: 22,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _step == _PublicChatStep.chat
-                                  ? 'Chat with $_companyDisplayName'
-                                  : 'Autobus Assistant',
-                              style: GoogleFonts.montserrat(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _brand.withValues(alpha: 0.78),
+                              border: Border(
+                                bottom: BorderSide(
+                                  color: Colors.white.withValues(alpha: 0.22),
+                                ),
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            ),
+                            child: Row(
+                              children: [
+                                const AutobusMark(
+                                  circleSize: 14,
+                                  primaryColor: Colors.white,
+                                  secondaryColor: Color(0xFFE8D4F5),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _step == _PublicChatStep.chat
+                                        ? 'Chat with $_companyDisplayName'
+                                        : 'Autobus Assistant',
+                                    style: GoogleFonts.montserrat(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                IconButton(
+                                  onPressed: _toggleOpen,
+                                  icon: const Icon(
+                                    Icons.close,
+                                    color: Colors.white,
+                                  ),
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                              ],
                             ),
                           ),
-                          IconButton(
-                            onPressed: _toggleOpen,
-                            icon: const Icon(Icons.close, color: Colors.white),
-                            visualDensity: VisualDensity.compact,
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                    if (_step == _PublicChatStep.chat)
-                      _buildChatArea()
-                    else if (_step == _PublicChatStep.companyPick)
-                      _buildCompanyPicker()
-                    else
-                      _buildSetupForm(),
-                  ],
+                      if (_step == _PublicChatStep.chat)
+                        _buildChatArea()
+                      else if (_step == _PublicChatStep.companyPick)
+                        _buildCompanyPicker()
+                      else
+                        _buildSetupForm(),
+                    ],
+                  ),
                 ),
               ),
             ),
           const SizedBox(height: 12),
-          FloatingActionButton.extended(
-            onPressed: _toggleOpen,
-            backgroundColor: _accent,
-            foregroundColor: Colors.white,
-            icon: Icon(_open ? Icons.close : Icons.chat_bubble_outline),
-            label: Text(
-              _open ? 'Close' : 'Chat with us',
-              style: GoogleFonts.montserrat(fontWeight: FontWeight.w600),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: FloatingActionButton.extended(
+                onPressed: _toggleOpen,
+                elevation: 0,
+                highlightElevation: 0,
+                backgroundColor: _accent.withValues(alpha: 0.88),
+                foregroundColor: Colors.white,
+                icon: _open
+                    ? const Icon(Icons.close)
+                    : const AutobusMark(
+                        circleSize: 16,
+                        primaryColor: Colors.white,
+                        secondaryColor: Color(0xFFE8D4F5),
+                      ),
+                label: Text(
+                  _open ? 'Close' : 'Chat with us',
+                  style: GoogleFonts.montserrat(fontWeight: FontWeight.w600),
+                ),
+              ),
             ),
           ),
         ],

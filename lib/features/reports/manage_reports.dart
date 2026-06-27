@@ -81,7 +81,7 @@ class _ManageReportsState extends State<ManageReports> {
                           child: Text(
                             'Analytics',
                             textAlign: TextAlign.center,
-                            style: ManageScreenStyle.headerTitleStyle(),
+                            style: ManageScreenStyle.headerTitleStyle(context),
                           ),
                         ),
                         Align(

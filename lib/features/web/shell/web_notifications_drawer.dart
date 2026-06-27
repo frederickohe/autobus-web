@@ -1,15 +1,15 @@
 import 'package:autobus/barrel.dart';
 import 'package:autobus/features/web/shell/web_app_controller.dart';
 
-/// Right-side notifications drawer overlay for the authenticated web dashboard.
+/// Notifications dropdown anchored below the top-bar bell on the web dashboard.
 class WebDashboardNotificationsOverlay extends StatelessWidget {
   const WebDashboardNotificationsOverlay({super.key, required this.child});
 
   final Widget child;
 
-  static const double drawerWidth = 380;
-  static const Color _drawerBackground = Color(0xFF1A0F2E);
-  static const Color _drawerBorder = Color(0xFF3F1163);
+  static const double panelWidth = 360;
+  static const double panelMaxHeight = 480;
+  static const double topBarHeight = 64;
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +19,7 @@ class WebDashboardNotificationsOverlay extends StatelessWidget {
         final open = WebAppController.instance.notificationsDrawerOpen;
 
         return Stack(
-          clipBehavior: Clip.hardEdge,
+          clipBehavior: Clip.none,
           children: [
             child,
             Positioned.fill(
@@ -30,37 +30,74 @@ class WebDashboardNotificationsOverlay extends StatelessWidget {
                   duration: const Duration(milliseconds: 200),
                   child: GestureDetector(
                     onTap: WebAppController.instance.closeNotificationsDrawer,
-                    child: ColoredBox(
-                      color: Colors.black.withValues(alpha: 0.45),
-                    ),
+                    child: const ColoredBox(color: Colors.transparent),
                   ),
                 ),
               ),
             ),
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeOutCubic,
-              top: 0,
-              bottom: 0,
-              right: open ? 0 : -drawerWidth,
-              width: drawerWidth,
-              child: Material(
-                color: _drawerBackground,
-                elevation: 12,
-                shadowColor: Colors.black.withValues(alpha: 0.5),
-                child: DecoratedBox(
-                  decoration: const BoxDecoration(
-                    border: Border(
-                      left: BorderSide(color: _drawerBorder),
+            AnimatedOpacity(
+              opacity: open ? 1 : 0,
+              duration: const Duration(milliseconds: 200),
+              child: IgnorePointer(
+                ignoring: !open,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned(
+                      top: topBarHeight - 6,
+                      right: 68,
+                      child: Transform.rotate(
+                        angle: 0.785398,
+                        child: Container(
+                          width: 14,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(
+                              color: ManageScreenStyle.lightBorder,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.08),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                  child: SafeArea(
-                    left: false,
-                    child: NotificationsInboxPanel(
-                      onClose:
-                          WebAppController.instance.closeNotificationsDrawer,
+                    Positioned(
+                      top: topBarHeight + 4,
+                      right: 16,
+                      child: Material(
+                        color: Colors.white,
+                        elevation: 8,
+                        shadowColor: Colors.black.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          width: panelWidth,
+                          height: panelMaxHeight,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: ManageScreenStyle.lightBorder,
+                            ),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: NotificationsInboxPanel(
+                              compact: true,
+                              onClose:
+                                  WebAppController.instance
+                                      .closeNotificationsDrawer,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),

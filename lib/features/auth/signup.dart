@@ -28,16 +28,13 @@ class _SignupState extends State<Signup> {
     (_) => TextEditingController(),
   );
   final List<FocusNode> _pinFocusNodes = List.generate(4, (_) => FocusNode());
-  final TextEditingController _webGhanaCardController = TextEditingController();
-  bool _agreedToTerms = false;
-
   String get _pin => _pinControllers.map((c) => c.text).join();
 
   String get _ghanaCardValue {
-    final ten = ghanaCardTenController.text.trim();
+    final nine = ghanaCardTenController.text.trim();
     final one = ghanaCardCheckController.text.trim();
-    if (ten.isEmpty && one.isEmpty) return '';
-    return 'GHA-$ten-$one';
+    if (nine.isEmpty && one.isEmpty) return '';
+    return 'GHA-$nine-$one';
   }
 
   static TextStyle _ghanaTenStyle() {
@@ -96,7 +93,6 @@ class _SignupState extends State<Signup> {
     for (final n in _pinFocusNodes) {
       n.dispose();
     }
-    _webGhanaCardController.dispose();
     super.dispose();
   }
 
@@ -110,20 +106,6 @@ class _SignupState extends State<Signup> {
       );
       return;
     }
-    if (kIsWeb && !_agreedToTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please agree to the terms & conditions'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    final ghanaCard = kIsWeb
-        ? _webGhanaCardController.text.trim()
-        : _ghanaCardValue;
-
     context.read<AuthBloc>().add(
       SignupEvent(
         username: usernameController.text.trim(),
@@ -131,7 +113,7 @@ class _SignupState extends State<Signup> {
         email: emailController.text.trim(),
         password: _pin,
         company: companyController.text.trim(),
-        ghanaCard: ghanaCard,
+        ghanaCard: _ghanaCardValue,
       ),
     );
   }
@@ -223,13 +205,6 @@ class _SignupState extends State<Signup> {
               enabled: !isLoading,
             ),
             const SizedBox(height: 24),
-            WebAuthPinField(
-              label: 'Password*',
-              controllers: _pinControllers,
-              focusNodes: _pinFocusNodes,
-              enabled: !isLoading,
-            ),
-            const SizedBox(height: 24),
             WebAuthField(
               label: 'Phone*',
               controller: phoneController,
@@ -245,17 +220,18 @@ class _SignupState extends State<Signup> {
               enabled: !isLoading,
             ),
             const SizedBox(height: 24),
-            WebAuthField(
-              label: 'Ghana Card*',
-              controller: _webGhanaCardController,
-              hint: 'GHA-XXXXXXXXXX-X',
+            WebAuthGhanaCardField(
+              digitsController: ghanaCardTenController,
+              checkDigitController: ghanaCardCheckController,
+              checkDigitFocusNode: _ghanaCardCheckFocusNode,
               enabled: !isLoading,
             ),
             const SizedBox(height: 24),
-            WebAuthCheckboxRow(
-              label: 'I agree to terms & conditions',
-              value: _agreedToTerms,
-              onChanged: (value) => setState(() => _agreedToTerms = value),
+            WebAuthPinField(
+              label: 'Password*',
+              controllers: _pinControllers,
+              focusNodes: _pinFocusNodes,
+              enabled: !isLoading,
             ),
             const SizedBox(height: 40),
             WebAuthOutlinedButton(

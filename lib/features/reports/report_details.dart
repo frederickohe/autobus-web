@@ -30,7 +30,7 @@ class _ReportDetailScaffold extends StatelessWidget {
                       Expanded(
                         child: Text(
                           title,
-                          style: ManageScreenStyle.headerTitleStyle(),
+                          style: ManageScreenStyle.headerTitleStyle(context),
                         ),
                       ),
                     ],

@@ -84,7 +84,7 @@ class _ManageOutletsState extends State<ManageOutlets> {
                       Expanded(
                         child: Text(
                           'Link Social Media',
-                          style: ManageScreenStyle.headerTitleStyle(),
+                          style: ManageScreenStyle.headerTitleStyle(context),
                         ),
                       ),
                       if (!_loading)

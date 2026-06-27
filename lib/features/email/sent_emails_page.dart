@@ -138,7 +138,7 @@ class _SentEmailsPageState extends State<SentEmailsPage> {
                       Expanded(
                         child: Text(
                           'Sent Emails',
-                          style: ManageScreenStyle.headerTitleStyle(),
+                          style: ManageScreenStyle.headerTitleStyle(context),
                         ),
                       ),
                     ],

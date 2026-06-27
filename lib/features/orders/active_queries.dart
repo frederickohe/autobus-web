@@ -106,7 +106,7 @@ class _ActiveQueriesState extends State<ActiveQueries> {
                       Expanded(
                         child: Text(
                           'Pending Orders',
-                          style: ManageScreenStyle.headerTitleStyle(),
+                          style: ManageScreenStyle.headerTitleStyle(context),
                         ),
                       ),
                     ],

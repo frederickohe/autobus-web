@@ -208,7 +208,7 @@ class _HomeState extends State<Home> {
                               color: inWebShell
                                   ? ManageScreenStyle.lightSecondaryText
                                   : Colors.white.withValues(alpha: 0.8),
-                              fontSize: 20,
+                              fontSize: inWebShell ? 16 : 20,
                               fontWeight: FontWeight.w300,
                             ),
                           ),
@@ -254,6 +254,7 @@ class _HomeState extends State<Home> {
                   if (inWebShell) ...[
                     ReportsOverviewPanel(
                       horizontalPadding: 0,
+                      showPeriodSelector: true,
                       showViewDetailedReportsLink: true,
                       onViewDetailedReports: () => _openHub(
                         context,
@@ -492,7 +493,7 @@ class _AlertBox extends StatelessWidget {
             color: light ? ManageScreenStyle.lightBorder : const Color(0xFF3F1163),
             width: light ? 1 : 1.5,
           ),
-          color: light ? const Color(0xFFFEF2F2) : null,
+          color: light ? Colors.white : null,
         ),
         child: Row(
           children: [

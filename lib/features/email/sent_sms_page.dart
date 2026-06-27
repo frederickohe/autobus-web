@@ -137,7 +137,7 @@ class _SentSmsPageState extends State<SentSmsPage> {
                       Expanded(
                         child: Text(
                           'Sent SMS',
-                          style: ManageScreenStyle.headerTitleStyle(),
+                          style: ManageScreenStyle.headerTitleStyle(context),
                         ),
                       ),
                     ],

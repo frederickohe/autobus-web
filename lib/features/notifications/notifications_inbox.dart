@@ -22,19 +22,25 @@ class NotificationsInboxPanel extends StatefulWidget {
   const NotificationsInboxPanel({
     super.key,
     this.showBackButton = false,
+    this.compact = false,
     this.onClose,
   });
 
   final bool showBackButton;
+  final bool compact;
   final VoidCallback? onClose;
 
   @override
-  State<NotificationsInboxPanel> createState() => _NotificationsInboxPanelState();
+  State<NotificationsInboxPanel> createState() =>
+      _NotificationsInboxPanelState();
 }
 
 class _NotificationsInboxPanelState extends State<NotificationsInboxPanel> {
   late Future<List<AppNotification>> _future;
   final Set<String> _markingIds = {};
+
+  bool get _light =>
+      widget.compact || ManageScreenStyle.useLightTheme;
 
   @override
   void initState() {
@@ -79,35 +85,46 @@ class _NotificationsInboxPanelState extends State<NotificationsInboxPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final horizontalPadding = widget.compact ? 14.0 : 18.0;
+    final topPadding = widget.compact ? 12.0 : 20.0;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 18),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
       child: Column(
         children: [
-          const SizedBox(height: 20),
+          SizedBox(height: topPadding),
           Row(
             children: [
               if (widget.showBackButton)
                 const ManageScreenBackButton()
               else
-                const SizedBox(width: 48, height: 48),
+                SizedBox(width: widget.compact ? 0 : 48, height: 48),
               Expanded(
                 child: Text(
                   'Notifications',
-                  textAlign: TextAlign.center,
-                  style: ManageScreenStyle.headerTitleStyle(),
+                  textAlign: widget.compact ? TextAlign.left : TextAlign.center,
+                  style: ManageScreenStyle.headerTitleStyle(context).copyWith(
+                    fontSize: widget.compact ? 15 : null,
+                  ),
                 ),
               ),
               if (widget.onClose != null)
                 IconButton(
                   onPressed: widget.onClose,
-                  icon: const Icon(Icons.close, color: Colors.white),
+                  icon: Icon(
+                    Icons.close,
+                    color: _light
+                        ? ManageScreenStyle.lightSecondaryText
+                        : Colors.white,
+                    size: 20,
+                  ),
                   tooltip: 'Close',
                 )
               else
-                const SizedBox(width: 48, height: 48),
+                SizedBox(width: widget.compact ? 0 : 48, height: 48),
             ],
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: widget.compact ? 10 : 18),
           Expanded(
             child: FutureBuilder<List<AppNotification>>(
               future: _future,
@@ -120,8 +137,11 @@ class _NotificationsInboxPanelState extends State<NotificationsInboxPanel> {
                     child: Text(
                       'Failed to load notifications',
                       style: GoogleFonts.montserrat(
-                        color: Colors.white,
+                        color: _light
+                            ? ManageScreenStyle.lightSecondaryText
+                            : Colors.white,
                         fontWeight: FontWeight.w300,
+                        fontSize: 12,
                       ),
                     ),
                   );
@@ -133,8 +153,11 @@ class _NotificationsInboxPanelState extends State<NotificationsInboxPanel> {
                     child: Text(
                       'No notifications yet',
                       style: GoogleFonts.montserrat(
-                        color: Colors.white,
+                        color: _light
+                            ? ManageScreenStyle.lightSecondaryText
+                            : Colors.white,
                         fontWeight: FontWeight.w300,
+                        fontSize: 12,
                       ),
                     ),
                   );
@@ -145,7 +168,8 @@ class _NotificationsInboxPanelState extends State<NotificationsInboxPanel> {
                   child: ListView.separated(
                     physics: const AlwaysScrollableScrollPhysics(),
                     itemCount: items.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    separatorBuilder: (_, __) =>
+                        SizedBox(height: widget.compact ? 8 : 10),
                     itemBuilder: (context, i) {
                       final n = items[i];
                       final created = n.createdAt;
@@ -156,14 +180,17 @@ class _NotificationsInboxPanelState extends State<NotificationsInboxPanel> {
                       final marking = _markingIds.contains(n.id);
 
                       return Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 12,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: widget.compact ? 12 : 14,
+                          vertical: widget.compact ? 10 : 12,
                         ),
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(14),
+                          color: _light ? Colors.white : null,
                           border: Border.all(
-                            color: const Color(0xFF3F1163),
+                            color: _light
+                                ? ManageScreenStyle.lightBorder
+                                : const Color(0xFF3F1163),
                             width: 1,
                           ),
                         ),
@@ -171,9 +198,9 @@ class _NotificationsInboxPanelState extends State<NotificationsInboxPanel> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Container(
-                              width: 10,
-                              height: 10,
-                              margin: const EdgeInsets.only(top: 6),
+                              width: 8,
+                              height: 8,
+                              margin: const EdgeInsets.only(top: 5),
                               decoration: const BoxDecoration(
                                 color: Color(0xFFEF4444),
                                 shape: BoxShape.circle,
@@ -189,18 +216,23 @@ class _NotificationsInboxPanelState extends State<NotificationsInboxPanel> {
                                         ? n.displayText
                                         : n.title,
                                     style: GoogleFonts.montserrat(
-                                      color: Colors.white,
+                                      color: _light
+                                          ? ManageScreenStyle.lightPrimaryText
+                                          : Colors.white,
                                       fontSize: 12,
                                       fontWeight: FontWeight.w400,
                                     ),
                                   ),
                                   if (subtitle.isNotEmpty) ...[
-                                    const SizedBox(height: 6),
+                                    const SizedBox(height: 4),
                                     Text(
                                       subtitle,
                                       style: GoogleFonts.montserrat(
-                                        color: Colors.white70,
-                                        fontSize: 11,
+                                        color: _light
+                                            ? ManageScreenStyle
+                                                .lightSecondaryText
+                                            : Colors.white70,
+                                        fontSize: 10,
                                         fontWeight: FontWeight.w300,
                                       ),
                                     ),
@@ -208,27 +240,38 @@ class _NotificationsInboxPanelState extends State<NotificationsInboxPanel> {
                                 ],
                               ),
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 6),
                             TextButton(
-                              onPressed: marking ? null : () => _markAsRead(n),
+                              onPressed:
+                                  marking ? null : () => _markAsRead(n),
                               style: TextButton.styleFrom(
-                                foregroundColor: const Color(0xFFA855F7),
+                                foregroundColor: CustColors.mainCol,
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
+                                  horizontal: 6,
+                                  vertical: 2,
                                 ),
                                 minimumSize: Size.zero,
                                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               ),
                               child: marking
-                                  ? const AutobusLoadingIndicator(size: 16)
+                                  ? const AutobusLoadingIndicator(size: 14)
                                   : Text(
                                       'Mark read',
                                       style: GoogleFonts.montserrat(
-                                        fontSize: 11,
+                                        fontSize: 10,
                                         fontWeight: FontWeight.w400,
                                       ),
                                     ),
+                            ),
+                            Transform.rotate(
+                              angle: -0.785398,
+                              child: Icon(
+                                Icons.arrow_outward,
+                                color: _light
+                                    ? ManageScreenStyle.lightSecondaryText
+                                    : Colors.white54,
+                                size: 14,
+                              ),
                             ),
                           ],
                         ),
@@ -239,6 +282,7 @@ class _NotificationsInboxPanelState extends State<NotificationsInboxPanel> {
               },
             ),
           ),
+          if (widget.compact) const SizedBox(height: 8),
         ],
       ),
     );

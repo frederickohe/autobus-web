@@ -137,6 +137,7 @@ class _DigitalMarketingSelectionState extends State<DigitalMarketingSelection> {
                   const ManageScreenHeader(
                     title: 'Digital Marketing',
                     creditCategory: CreditCategory.imageGen,
+                    onDarkBackground: true,
                   ),
                   const SizedBox(height: 24),
                   Text(

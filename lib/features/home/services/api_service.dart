@@ -987,31 +987,11 @@ class ApiService {
     return [];
   }
 
-  /// Get total revenue
-  Future<double> getTotalRevenue() async {
-    final response = await httpClient.get(
-      Uri.parse('$baseUrl/payment/revenue'),
-    );
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return (data as num).toDouble();
-    }
-    return 0.0;
-  }
+  /// Get total revenue — accounting endpoints are not available yet.
+  Future<double> getTotalRevenue() async => 0.0;
 
-  /// GET /api/v1/payment/revenue/{timeline} — revenue for TODAY, THIS_WEEK, etc.
-  Future<double> getRevenueByTimeline(String timeline) async {
-    final key = timeline.trim().toUpperCase();
-    if (key.isEmpty || key == 'ALL') return getTotalRevenue();
-    final response = await httpClient.get(
-      Uri.parse('$baseUrl/payment/revenue/$key'),
-    );
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return (data as num).toDouble();
-    }
-    return 0.0;
-  }
+  /// GET /api/v1/payment/revenue/{timeline} — accounting endpoints are not available yet.
+  Future<double> getRevenueByTimeline(String timeline) async => 0.0;
 
   /// GET /api/v1/products/inventory/low-stock
   Future<List<Map<String, dynamic>>> getLowStockInventory({
@@ -1066,26 +1046,12 @@ class ApiService {
     return [];
   }
 
-  /// GET /api/v1/billing — Paystack billing charges (order invoices, etc.)
+  /// GET /api/v1/billing — accounting endpoints are not available yet.
   Future<List<Map<String, dynamic>>> listBillings({
     int page = 0,
     int size = 200,
-  }) async {
-    final response = await httpClient.get(
-      Uri.parse('$baseUrl/billing?page=$page&size=$size'),
-    );
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      if (data is Map) {
-        return _decodeMapList(data['items']);
-      }
-      if (data is List) return _decodeMapList(data);
-    }
-    if (response.statusCode == 401) {
-      throw Exception('Session expired');
-    }
-    return [];
-  }
+  }) async =>
+      [];
 
   /// Get financial transaction history
   Future<List<Map<String, dynamic>>> getFinancials({

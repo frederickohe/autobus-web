@@ -158,7 +158,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                       Expanded(
                         child: Text(
                           title,
-                          style: ManageScreenStyle.headerTitleStyle(),
+                          style: ManageScreenStyle.headerTitleStyle(context),
                         ),
                       ),
                     ],

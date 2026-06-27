@@ -84,7 +84,7 @@ class _ManageChannelsState extends State<ManageChannels> {
                       Expanded(
                         child: Text(
                           'Manage Channels',
-                          style: ManageScreenStyle.headerTitleStyle(),
+                          style: ManageScreenStyle.headerTitleStyle(context),
                         ),
                       ),
                       if (!_loading)
