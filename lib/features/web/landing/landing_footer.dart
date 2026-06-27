@@ -5,9 +5,14 @@ import 'package:autobus/features/web/legal_web_paths.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 class LandingFooter extends StatelessWidget {
-  const LandingFooter({super.key, required this.isNarrow});
+  const LandingFooter({
+    super.key,
+    required this.isNarrow,
+    this.onGetStarted,
+  });
 
   final bool isNarrow;
+  final VoidCallback? onGetStarted;
 
   static const _bg = Color(0xFF2A1447);
   static const _muted = Color(0xFFC4B8D6);
@@ -51,10 +56,12 @@ class LandingFooter extends StatelessWidget {
             year: year,
             onPrivacyTap: () => _openPrivacyPolicy(context),
             onAccountDeletionTap: () => _openAccountDeletion(context),
+            onGetStarted: onGetStarted,
           ) : _WideContent(
             year: year,
             onPrivacyTap: () => _openPrivacyPolicy(context),
             onAccountDeletionTap: () => _openAccountDeletion(context),
+            onGetStarted: onGetStarted,
           ),
         ),
       ),
@@ -67,11 +74,13 @@ class _WideContent extends StatelessWidget {
     required this.year,
     required this.onPrivacyTap,
     required this.onAccountDeletionTap,
+    this.onGetStarted,
   });
 
   final int year;
   final VoidCallback onPrivacyTap;
   final VoidCallback onAccountDeletionTap;
+  final VoidCallback? onGetStarted;
 
   @override
   Widget build(BuildContext context) {
@@ -116,9 +125,9 @@ class _WideContent extends StatelessWidget {
               flex: 2,
               child: _FooterLinkGroup(
                 title: 'Product',
-                links: const [
-                  _FooterLink(label: 'Features'),
-                  _FooterLink(label: 'Get Started'),
+                links: [
+                  const _FooterLink(label: 'Features'),
+                  _FooterLink(label: 'Get Started', onTap: onGetStarted),
                 ],
               ),
             ),
@@ -188,11 +197,13 @@ class _NarrowContent extends StatelessWidget {
     required this.year,
     required this.onPrivacyTap,
     required this.onAccountDeletionTap,
+    this.onGetStarted,
   });
 
   final int year;
   final VoidCallback onPrivacyTap;
   final VoidCallback onAccountDeletionTap;
+  final VoidCallback? onGetStarted;
 
   @override
   Widget build(BuildContext context) {

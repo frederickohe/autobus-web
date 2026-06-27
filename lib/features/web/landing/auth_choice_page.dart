@@ -7,17 +7,18 @@ class AuthChoicePage extends StatelessWidget {
   static const _brand = Color(0xFF2A1447);
   static const _outline = Color(0xFFDCE0EC);
 
-  void _goToSignup(BuildContext context) {
+  static void openSignup(BuildContext context) {
     Navigator.of(context).push(
       PageTransition(
         type: PageTransitionType.rightToLeftWithFade,
-        childCurrent: const AuthChoicePage(),
         duration: const Duration(milliseconds: 350),
         reverseDuration: const Duration(milliseconds: 300),
         child: const Signup(),
       ),
     );
   }
+
+  void _goToSignup(BuildContext context) => openSignup(context);
 
   void _goToSignin(BuildContext context) {
     Navigator.of(context).push(

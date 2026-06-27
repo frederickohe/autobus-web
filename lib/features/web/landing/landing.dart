@@ -1,6 +1,7 @@
 import 'package:autobus/barrel.dart';
 import 'package:autobus/features/web/landing/auth_choice_page.dart';
 import 'package:autobus/features/web/landing/landing_footer.dart';
+import 'package:autobus/features/web/landing/public_site_chatbot.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
@@ -37,7 +38,9 @@ class _LandingPageState extends State<LandingPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _bg,
-      body: LayoutBuilder(
+      body: Stack(
+        children: [
+          LayoutBuilder(
         builder: (context, constraints) {
           final isNarrow = constraints.maxWidth < 980;
 
@@ -52,20 +55,19 @@ class _LandingPageState extends State<LandingPage> {
                 _AboutMetricsSection(
                   sectionKey: _aboutSectionKey,
                   isNarrow: isNarrow,
-                  onGetStarted: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AuthChoicePage(),
-                      ),
-                    );
-                  },
+                  onGetStarted: () => AuthChoicePage.openSignup(context),
                 ),
-                LandingFooter(isNarrow: isNarrow),
+                LandingFooter(
+                  isNarrow: isNarrow,
+                  onGetStarted: () => AuthChoicePage.openSignup(context),
+                ),
               ],
             ),
           );
         },
+      ),
+          const PublicSiteChatbot(),
+        ],
       ),
     );
   }
@@ -128,14 +130,7 @@ class _HeroSection extends StatelessWidget {
               children: [
                 _PrimaryButton(
                   label: 'Get Started',
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AuthChoicePage(),
-                      ),
-                    );
-                  },
+                  onPressed: () => AuthChoicePage.openSignup(context),
                 ),
                 _SecondaryButton(label: 'Read More', onPressed: onReadMore),
               ],
