@@ -1,0 +1,26 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy web app via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+            cd /var/www/autobus-web
+            export BACKEND_URL="${{ secrets.BACKEND_URL }}"
+            export PAYSTACK_PUBLIC_KEY="${{ secrets.PAYSTACK_PUBLIC_KEY }}"
+            export PAYSTACK_CALLBACK_URL="${{ secrets.PAYSTACK_CALLBACK_URL }}"
+            chmod +x scripts/deploy.sh
+            BUILD_NO_CACHE=true bash scripts/deploy.sh
