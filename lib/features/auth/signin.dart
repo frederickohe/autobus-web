@@ -102,7 +102,7 @@ class _SigninState extends State<Signin> {
     }
 
     context.read<AuthBloc>().add(
-      LoginEvent(email: emailController.text, password: _pin),
+      LoginEvent(identifier: emailController.text.trim(), password: _pin),
     );
   }
 
@@ -120,10 +120,9 @@ class _SigninState extends State<Signin> {
             ),
             const SizedBox(height: 40),
             WebAuthField(
-              label: 'Your email*',
+              label: 'Email or Username*',
               controller: emailController,
               hint: 'Enter email or username',
-              keyboardType: TextInputType.emailAddress,
               enabled: !isLoading,
             ),
             const SizedBox(height: 24),

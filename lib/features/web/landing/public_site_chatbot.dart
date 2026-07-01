@@ -227,16 +227,16 @@ class _PublicSiteChatbotState extends State<PublicSiteChatbot> {
                 : opt.companyNumber;
             return Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: OutlinedButton(
+              child: TextButton(
                 onPressed: _busy
                     ? null
                     : () => _beginChatWithCompany(
                           companyNumber: opt.companyNumber,
                           displayName: label,
                         ),
-                style: OutlinedButton.styleFrom(
+                style: TextButton.styleFrom(
                   foregroundColor: _brand,
-                  side: const BorderSide(color: Color(0xFFDCE0EC)),
+                  backgroundColor: Colors.white.withValues(alpha: 0.45),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14,
                     vertical: 14,
@@ -299,21 +299,15 @@ class _PublicSiteChatbotState extends State<PublicSiteChatbot> {
               fillColor: Colors.white.withValues(alpha: 0.45),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: Colors.white.withValues(alpha: 0.55),
-                ),
+                borderSide: BorderSide.none,
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: Colors.white.withValues(alpha: 0.55),
-                ),
+                borderSide: BorderSide.none,
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: _brand.withValues(alpha: 0.35),
-                ),
+                borderSide: BorderSide.none,
               ),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 14,
@@ -363,7 +357,6 @@ class _PublicSiteChatbotState extends State<PublicSiteChatbot> {
     required Widget child,
     required BorderRadius borderRadius,
     required Color fillColor,
-    Color? borderColor,
   }) {
     return ClipRRect(
       borderRadius: borderRadius,
@@ -373,9 +366,6 @@ class _PublicSiteChatbotState extends State<PublicSiteChatbot> {
           decoration: BoxDecoration(
             color: fillColor,
             borderRadius: borderRadius,
-            border: Border.all(
-              color: borderColor ?? Colors.white.withValues(alpha: 0.45),
-            ),
           ),
           child: child,
         ),
@@ -406,9 +396,6 @@ class _PublicSiteChatbotState extends State<PublicSiteChatbot> {
                       fillColor: isUser
                           ? Colors.white.withValues(alpha: 0.55)
                           : _brand.withValues(alpha: 0.72),
-                      borderColor: isUser
-                          ? Colors.white.withValues(alpha: 0.7)
-                          : _brand.withValues(alpha: 0.35),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
@@ -454,21 +441,15 @@ class _PublicSiteChatbotState extends State<PublicSiteChatbot> {
                       fillColor: Colors.white.withValues(alpha: 0.45),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20),
-                        borderSide: BorderSide(
-                          color: Colors.white.withValues(alpha: 0.55),
-                        ),
+                        borderSide: BorderSide.none,
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20),
-                        borderSide: BorderSide(
-                          color: Colors.white.withValues(alpha: 0.55),
-                        ),
+                        borderSide: BorderSide.none,
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20),
-                        borderSide: BorderSide(
-                          color: _brand.withValues(alpha: 0.35),
-                        ),
+                        borderSide: BorderSide.none,
                       ),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14,
@@ -514,9 +495,6 @@ class _PublicSiteChatbotState extends State<PublicSiteChatbot> {
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.58),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.72),
-                    ),
                     boxShadow: [
                       BoxShadow(
                         color: _brand.withValues(alpha: 0.14),
@@ -540,11 +518,6 @@ class _PublicSiteChatbotState extends State<PublicSiteChatbot> {
                             ),
                             decoration: BoxDecoration(
                               color: _brand.withValues(alpha: 0.78),
-                              border: Border(
-                                bottom: BorderSide(
-                                  color: Colors.white.withValues(alpha: 0.22),
-                                ),
-                              ),
                             ),
                             child: Row(
                               children: [

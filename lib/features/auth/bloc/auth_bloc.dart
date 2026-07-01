@@ -45,12 +45,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   Future<void> _onLogin(LoginEvent event, Emitter<AuthState> emit) async {
     emit(AuthLoading());
     try {
+      final identifier = event.identifier.trim();
       final response = await http.post(
         Uri.parse('${AppConfig.backendUrl}/api/v1/auth/signin'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
-          'username': event.email,
-          'email': event.email,
+          'email': identifier,
+          'username': identifier,
           'password': event.password,
         }),
       );
