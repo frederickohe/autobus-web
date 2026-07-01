@@ -22,5 +22,4 @@ jobs:
             export BACKEND_URL="${{ secrets.BACKEND_URL }}"
             export PAYSTACK_PUBLIC_KEY="${{ secrets.PAYSTACK_PUBLIC_KEY }}"
             export PAYSTACK_CALLBACK_URL="${{ secrets.PAYSTACK_CALLBACK_URL }}"
-            chmod +x scripts/deploy.sh
             BUILD_NO_CACHE=true bash scripts/deploy.sh
