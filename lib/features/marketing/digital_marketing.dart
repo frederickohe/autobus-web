@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:autobus/barrel.dart';
+import 'package:autobus/features/marketing/marketing_media_download.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:video_player/video_player.dart';
@@ -1310,7 +1311,7 @@ class _MarketingInlineVideoPlayerState extends State<_MarketingInlineVideoPlayer
   }
 }
 
-class _MediaSlotPreviewDialog extends StatelessWidget {
+class _MediaSlotPreviewDialog extends StatefulWidget {
   final MarketingContent content;
   final VoidCallback onDelete;
 
@@ -1320,9 +1321,88 @@ class _MediaSlotPreviewDialog extends StatelessWidget {
   });
 
   @override
+  State<_MediaSlotPreviewDialog> createState() =>
+      _MediaSlotPreviewDialogState();
+}
+
+class _MediaSlotPreviewDialogState extends State<_MediaSlotPreviewDialog> {
+  bool _downloading = false;
+
+  MarketingContent get content => widget.content;
+
+  bool get _canDownload {
+    if (content.genState != MediaGenState.ready) return false;
+    if (content.type == MarketingContentType.pictures) {
+      final hasBytes = content.generatedBytes != null;
+      final localPath = content.localFilePath;
+      final hasLocalFile = !kIsWeb &&
+          localPath != null &&
+          localPath.isNotEmpty &&
+          File(localPath).existsSync();
+      return hasBytes || hasLocalFile;
+    }
+    if (content.type == MarketingContentType.videos) {
+      final hasRemote = content.generatedResult?.isNotEmpty ?? false;
+      final localPath = content.localFilePath;
+      final hasLocalFile = !kIsWeb &&
+          localPath != null &&
+          localPath.isNotEmpty &&
+          File(localPath).existsSync();
+      return hasRemote || hasLocalFile;
+    }
+    return false;
+  }
+
+  Future<void> _download() async {
+    if (_downloading || !_canDownload) return;
+    setState(() => _downloading = true);
+    try {
+      final isPicture = content.type == MarketingContentType.pictures;
+      final mimeType = isPicture &&
+              (content.generatedResult?.startsWith('image/') ?? false)
+          ? content.generatedResult
+          : null;
+      final suggestedName = isPicture
+          ? (content.localFilePath ?? content.generatedResult)
+          : null;
+      final ok = isPicture
+          ? await MarketingMediaDownloader.downloadPicture(
+              bytes: content.generatedBytes,
+              localPath: content.localFilePath,
+              mimeType: mimeType,
+              suggestedName: suggestedName,
+            )
+          : await MarketingMediaDownloader.downloadVideo(
+              remoteUrl: content.generatedResult,
+              localPath: content.localFilePath,
+            );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ok
+                ? (kIsWeb
+                    ? 'Download started'
+                    : 'Saved to your device')
+                : 'Could not download file',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Download failed: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _downloading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isPicture = content.type == MarketingContentType.pictures;
     final deleteLabel = isPicture ? 'Delete image' : 'Delete video';
+    final downloadLabel = isPicture ? 'Download image' : 'Download video';
 
     final maxPreviewHeight = MediaQuery.sizeOf(context).height * 0.55;
 
@@ -1350,10 +1430,41 @@ class _MediaSlotPreviewDialog extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
+          if (_canDownload) ...[
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _downloading ? null : _download,
+                icon: _downloading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.download_rounded),
+                label: Text(
+                  downloadLabel,
+                  style: GoogleFonts.montserrat(fontWeight: FontWeight.w600),
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: _kHeaderPurple,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
-              onPressed: onDelete,
+              onPressed: widget.onDelete,
               icon: const Icon(Icons.delete_outline, color: CustColors.accentRed),
               label: Text(
                 deleteLabel,
