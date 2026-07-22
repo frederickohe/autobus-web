@@ -13,10 +13,18 @@ class TokenModel {
     required this.expiresIn,
   });
 
-  factory TokenModel.fromJson(Map<String, dynamic> json) {
+  factory TokenModel.fromJson(
+    Map<String, dynamic> json, {
+    String? preserveRefreshToken,
+  }) {
+    final refreshFromJson = json['refresh_token'];
+    final refreshToken = (refreshFromJson != null &&
+            refreshFromJson.toString().isNotEmpty)
+        ? refreshFromJson.toString()
+        : (preserveRefreshToken ?? '');
     return TokenModel(
       accessToken: json['access_token'] ?? '',
-      refreshToken: json['refresh_token'] ?? '',
+      refreshToken: refreshToken,
       tokenType: json['token_type'] ?? 'bearer',
       expiresIn: json['expires_in'] ?? 1800,
     );

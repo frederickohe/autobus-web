@@ -51,6 +51,14 @@ class AuthWrapper extends StatelessWidget {
                       ? Map<String, dynamic>.from(u)
                       : <String, dynamic>{});
             return SubscriptionGuard(user: userMap);
+          } else if (state is TokenRefreshed) {
+            final dynamic u = state.user;
+            final userMap = (u is Map<String, dynamic>)
+                ? u
+                : (u is Map
+                      ? Map<String, dynamic>.from(u)
+                      : <String, dynamic>{});
+            return SubscriptionGuard(user: userMap);
           } else if (state is Unauthenticated) {
             WebAppController.instance.exitDashboardShell();
             print('✗ User is Unauthenticated - showing Signin');

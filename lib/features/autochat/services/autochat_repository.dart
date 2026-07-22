@@ -52,6 +52,40 @@ class AutoChatRepository {
         '${AppConfig.backendUrl}/api/v1/webhooks/company-lookup',
       ).replace(queryParameters: {'name': name.trim()});
 
+  Uri get _sendWhatsAppUri => Uri.parse(
+        '${AppConfig.backendUrl}/api/v1/webhooks/send-whatsapp-message',
+      );
+
+  /// Send a WhatsApp Cloud API template via the Autobus backend (chat bubble demo).
+  Future<Map<String, dynamic>> sendWhatsAppMessage(String phone) async {
+    final res = await client.post(
+      _sendWhatsAppUri,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'to': phone.trim()}),
+    );
+
+    Map<String, dynamic> data = {};
+    try {
+      final decoded = jsonDecode(res.body);
+      if (decoded is Map) {
+        data = Map<String, dynamic>.from(decoded);
+      }
+    } catch (_) {
+      // ignore parse errors; surface status below
+    }
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      final detail = (data['detail'] ?? data['message'] ?? res.body).toString();
+      throw Exception(
+        detail.isNotEmpty
+            ? detail
+            : 'WhatsApp send failed (${res.statusCode}).',
+      );
+    }
+
+    return data;
+  }
+
   /// Validate a business name before starting a public-site chat session.
   Future<CompanyLookupResult> lookupCompany(String companyName) async {
     final trimmed = companyName.trim();

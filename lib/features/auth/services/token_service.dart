@@ -1,4 +1,5 @@
 import 'package:autobus/barrel.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 
 class TokenService {
   static const String _tokenKey = 'auth_token';
@@ -59,10 +60,19 @@ class TokenService {
     }
   }
 
-  /// Update tokens after refresh
+  /// Update tokens after refresh, preserving refresh token if omitted
   Future<void> updateToken(TokenModel newToken) async {
     try {
-      await saveToken(newToken);
+      final existing = await getToken();
+      final merged = TokenModel(
+        accessToken: newToken.accessToken,
+        refreshToken: newToken.refreshToken.isNotEmpty
+            ? newToken.refreshToken
+            : (existing?.refreshToken ?? ''),
+        tokenType: newToken.tokenType,
+        expiresIn: newToken.expiresIn,
+      );
+      await saveToken(merged);
     } catch (e) {
       throw Exception('Failed to update token: $e');
     }
@@ -127,7 +137,9 @@ class TokenService {
     try {
       final token = await getToken();
       if (token == null) return false;
-      return !token.isExpired;
+      if (!token.isExpired) return true;
+      if (token.refreshToken.isEmpty) return false;
+      return !JwtDecoder.isExpired(token.refreshToken);
     } catch (e) {
       return false;
     }

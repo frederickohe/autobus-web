@@ -59,8 +59,13 @@ class SessionAwareHttpClient extends http.BaseClient {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        // Update the token using TokenService
-        await tokenService.updateToken(TokenModel.fromJson(data));
+        final existing = await tokenService.getToken();
+        await tokenService.updateToken(
+          TokenModel.fromJson(
+            data,
+            preserveRefreshToken: existing?.refreshToken,
+          ),
+        );
         return true;
       }
       return false;

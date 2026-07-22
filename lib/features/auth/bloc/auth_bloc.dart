@@ -254,6 +254,20 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   Future<void> _onLogout(LogoutEvent event, Emitter<AuthState> emit) async {
     try {
+      final accessToken = await tokenService.getAccessToken();
+      if (accessToken != null) {
+        try {
+          await http.post(
+            Uri.parse('${AppConfig.backendUrl}/api/v1/auth/signout'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $accessToken',
+            },
+          );
+        } catch (_) {
+          // Best-effort server logout; always clear local session.
+        }
+      }
       await tokenService.clearTokens();
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('user');
@@ -417,7 +431,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final newTokenModel = TokenModel.fromJson(data);
+        final existing = await tokenService.getToken();
+        final newTokenModel = TokenModel.fromJson(
+          data,
+          preserveRefreshToken: existing?.refreshToken,
+        );
 
         // Save new tokens
         await tokenService.updateToken(newTokenModel);
@@ -476,10 +494,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         return;
       }
 
+      final isAccessValid = await tokenService.isTokenValid();
+      if (!isAccessValid) {
+        add(RefreshTokenEvent());
+        return;
+      }
+
       // Check if token should be refreshed proactively
       final shouldRefresh = await tokenService.shouldRefreshToken();
       if (shouldRefresh) {
-        // Emit a refresh token event
         add(RefreshTokenEvent());
         return;
       }
