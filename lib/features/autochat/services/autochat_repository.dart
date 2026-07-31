@@ -60,7 +60,7 @@ class AutoChatRepository {
   Future<Map<String, dynamic>> sendWhatsAppMessage(String phone) async {
     final res = await client.post(
       _sendWhatsAppUri,
-      headers: {'Content-Type': 'application/json'},
+      headers: AppConfig.webhookHeaders(),
       body: jsonEncode({'to': phone.trim()}),
     );
 
@@ -96,7 +96,10 @@ class AutoChatRepository {
       );
     }
 
-    final res = await client.get(_companyLookupUri(trimmed));
+    final res = await client.get(
+      _companyLookupUri(trimmed),
+      headers: AppConfig.webhookHeaders(),
+    );
     if (res.statusCode != 200) {
       return CompanyLookupResult(
         ok: false,
@@ -168,7 +171,7 @@ class AutoChatRepository {
 
     final res = await client.post(
       _endpoint,
-      headers: {'Content-Type': 'application/json'},
+      headers: AppConfig.webhookHeaders(),
       body: jsonEncode(body),
     );
 
