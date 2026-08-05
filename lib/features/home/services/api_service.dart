@@ -1510,6 +1510,105 @@ class ApiService {
     );
   }
 
+  /// GET /api/v1/whatsapp/connect — Meta WhatsApp Embedded Signup URL.
+  Future<PlatformEmbedSession> getWhatsAppConnectSession() async {
+    final response = await httpClient.get(
+      Uri.parse('$baseUrl/whatsapp/connect'),
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data is Map) {
+        final map = Map<String, dynamic>.from(data);
+        final authUrl = (map['authorization_url'] ?? '').toString();
+        if (authUrl.isEmpty) {
+          throw Exception('WhatsApp connect response missing authorization_url');
+        }
+        return PlatformEmbedSession(
+          authorizationUrl: authUrl,
+          message: map['message']?.toString(),
+        );
+      }
+      throw Exception('Invalid WhatsApp connect response');
+    }
+    if (response.statusCode == 401) {
+      throw Exception('Session expired');
+    }
+    throw Exception(
+      _httpDetailMessage(response.body) ??
+          'WhatsApp connect failed (${response.statusCode})',
+    );
+  }
+
+  /// GET /api/v1/whatsapp/accounts — Meta-linked WhatsApp numbers.
+  Future<List<Map<String, dynamic>>> listWhatsAppAccounts() async {
+    final response = await httpClient.get(
+      Uri.parse('$baseUrl/whatsapp/accounts'),
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data is! List) return [];
+      return data
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+    }
+    if (response.statusCode == 401) {
+      throw Exception('Session expired');
+    }
+    return [];
+  }
+
+  /// GET /api/v1/sms-sender-ids — current user's SMS sender ID registrations.
+  Future<List<Map<String, dynamic>>> listSmsSenderIds() async {
+    final response = await httpClient.get(
+      Uri.parse('$baseUrl/sms-sender-ids'),
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data is! List) return [];
+      return data
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+    }
+    if (response.statusCode == 401) {
+      throw Exception('Session expired');
+    }
+    return [];
+  }
+
+  /// POST /api/v1/sms-sender-ids — register a sender ID for team approval.
+  Future<Map<String, dynamic>> registerSmsSenderId({
+    required String senderId,
+    String? companyName,
+    String? notes,
+  }) async {
+    final body = <String, dynamic>{
+      'sender_id': senderId.trim(),
+      if (companyName != null && companyName.trim().isNotEmpty)
+        'company_name': companyName.trim(),
+      if (notes != null && notes.trim().isNotEmpty) 'notes': notes.trim(),
+    };
+    final response = await httpClient.post(
+      Uri.parse('$baseUrl/sms-sender-ids'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(body),
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final data = jsonDecode(response.body);
+      if (data is Map<String, dynamic>) return data;
+      if (data is Map) return Map<String, dynamic>.from(data);
+      throw Exception('Invalid SMS sender ID response');
+    }
+    if (response.statusCode == 401) {
+      throw Exception('Session expired');
+    }
+    throw Exception(
+      _httpDetailMessage(response.body) ??
+          'SMS sender ID registration failed (${response.statusCode})',
+    );
+  }
+
   /// GET /api/v1/chatwoot/status — env + workspace mapping (no subscription required).
   Future<Map<String, dynamic>> getChatwootStatus() async {
     final response = await httpClient.get(

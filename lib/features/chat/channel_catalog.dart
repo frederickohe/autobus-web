@@ -9,6 +9,7 @@ class ChannelOption {
   final FaIconData icon;
   final Color iconColor;
   final Set<String> chatwootKinds;
+  final bool comingSoon;
 
   const ChannelOption({
     required this.label,
@@ -16,6 +17,7 @@ class ChannelOption {
     required this.icon,
     required this.iconColor,
     required this.chatwootKinds,
+    this.comingSoon = false,
   });
 
   bool matchesInbox(ChatwootInbox inbox) {
@@ -45,25 +47,25 @@ class ChannelCatalog {
 
   static const List<ChannelOption> all = [
     ChannelOption(
-      label: 'LinkedIn',
-      apiSlug: 'linkedin',
-      icon: FontAwesomeIcons.linkedinIn,
-      iconColor: Color(0xFF0A66C2),
-      chatwootKinds: {'linkedin'},
+      label: 'Instagram',
+      apiSlug: 'instagram',
+      icon: FontAwesomeIcons.instagram,
+      iconColor: Color(0xFFE4405F),
+      chatwootKinds: {'instagram'},
     ),
     ChannelOption(
-      label: 'Facebook',
-      apiSlug: 'facebook',
-      icon: FontAwesomeIcons.facebookF,
-      iconColor: Color(0xFF1877F2),
-      chatwootKinds: {'facebook'},
-    ),
-    ChannelOption(
-      label: 'WhatsApp Status',
+      label: 'WhatsApp',
       apiSlug: 'whatsapp',
       icon: FontAwesomeIcons.whatsapp,
       iconColor: Color(0xFF25D366),
       chatwootKinds: {'whatsapp'},
+    ),
+    ChannelOption(
+      label: 'SMS',
+      apiSlug: 'sms',
+      icon: FontAwesomeIcons.commentSms,
+      iconColor: Color(0xFF0EA5E9),
+      chatwootKinds: {'sms'},
     ),
     ChannelOption(
       label: 'X',
@@ -71,6 +73,7 @@ class ChannelCatalog {
       icon: FontAwesomeIcons.xTwitter,
       iconColor: Colors.white,
       chatwootKinds: {'twitter'},
+      comingSoon: true,
     ),
   ];
 
@@ -81,6 +84,10 @@ class ChannelCatalog {
     final unlinked = <ChannelOption>[];
 
     for (final channel in all) {
+      if (channel.comingSoon) {
+        unlinked.add(channel);
+        continue;
+      }
       final matches =
           inboxes.where((i) => channel.matchesInbox(i)).toList();
       if (matches.isNotEmpty) {

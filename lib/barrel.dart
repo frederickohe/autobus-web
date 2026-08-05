@@ -48,6 +48,7 @@ export 'package:autobus/features/products/manage_products.dart';
 export 'package:autobus/features/products/add_product_screen.dart';
 export 'package:autobus/features/chat/manage_chats.dart';
 export 'package:autobus/features/chat/manage_channels.dart';
+export 'package:autobus/features/chat/manage_sms_sender_ids.dart';
 export 'package:autobus/features/chat/channel_catalog.dart';
 export 'package:autobus/features/chat/models/chatwoot_inbox.dart';
 export 'package:autobus/features/chat/live_chats.dart';
