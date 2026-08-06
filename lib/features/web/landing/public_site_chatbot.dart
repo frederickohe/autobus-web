@@ -4,7 +4,7 @@ import 'package:autobus/barrel.dart';
 import 'package:autobus/features/autochat/models/chat_message.dart';
 import 'package:autobus/features/autochat/services/autochat_repository.dart';
 
-enum _PublicChatStep { phone, whatsappSent, company, companyPick, chat }
+enum _PublicChatStep { phone, company, companyPick, chat }
 
 /// Floating chatbot on the public marketing site (no login required).
 class PublicSiteChatbot extends StatefulWidget {
@@ -63,54 +63,10 @@ class _PublicSiteChatbotState extends State<PublicSiteChatbot> {
       setState(() => _error = 'Enter a valid phone number.');
       return;
     }
-
     setState(() {
-      _busy = true;
       _error = null;
+      _step = _PublicChatStep.company;
     });
-
-    try {
-      final result = await _repo.sendWhatsAppMessage(phone);
-      if (!mounted) return;
-      final to = (result['to'] ?? phone).toString();
-      final messageId = (result['message_id'] ?? '').toString();
-      setState(() {
-        _busy = false;
-        _step = _PublicChatStep.whatsappSent;
-        _messages
-          ..clear()
-          ..add(
-            ChatMessage(
-              id: 'wa-sent',
-              userId: phone,
-              text:
-                  'Sending WhatsApp order confirmation to $to via Cloud API…',
-              timestamp: DateTime.now(),
-              sender: Sender.user,
-              status: MessageStatus.sent,
-            ),
-          )
-          ..add(
-            ChatMessage(
-              id: 'wa-ok',
-              userId: phone,
-              text: messageId.isNotEmpty
-                  ? 'Message sent. WhatsApp message id: $messageId\n\nOpen WhatsApp on your phone to confirm it arrived — then continue below if you want to chat with a business.'
-                  : 'Message sent via WhatsApp Cloud API.\n\nOpen WhatsApp on your phone to confirm it arrived — then continue below if you want to chat with a business.',
-              timestamp: DateTime.now(),
-              sender: Sender.bot,
-              status: MessageStatus.sent,
-            ),
-          );
-      });
-      _scrollToBottom();
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _busy = false;
-        _error = e.toString().replaceFirst('Exception: ', '');
-      });
-    }
   }
 
   void _beginChatWithCompany({
@@ -123,19 +79,17 @@ class _PublicSiteChatbotState extends State<PublicSiteChatbot> {
       _companyDisplayName = displayName;
       _companyOptions = [];
       _step = _PublicChatStep.chat;
-      _messages
-        ..clear()
-        ..add(
-          ChatMessage(
-            id: 'welcome',
-            userId: _phoneController.text.trim(),
-            text:
-                'Hi! You are chatting with $displayName. Ask anything about their business.',
-            timestamp: DateTime.now(),
-            sender: Sender.bot,
-            status: MessageStatus.sent,
-          ),
-        );
+      _messages.add(
+        ChatMessage(
+          id: 'welcome',
+          userId: _phoneController.text.trim(),
+          text:
+              'Hi! You are chatting with $displayName. Ask anything about their business.',
+          timestamp: DateTime.now(),
+          sender: Sender.bot,
+          status: MessageStatus.sent,
+        ),
+      );
     });
     _scrollToBottom();
   }
@@ -316,93 +270,6 @@ class _PublicSiteChatbotState extends State<PublicSiteChatbot> {
     );
   }
 
-  Widget _buildWhatsAppSent() {
-    return Expanded(
-      child: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final m = _messages[index];
-                final isUser = m.sender == Sender.user;
-                return Align(
-                  alignment:
-                      isUser ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    constraints: const BoxConstraints(maxWidth: 280),
-                    child: _glassBubble(
-                      borderRadius: BorderRadius.circular(14),
-                      fillColor: isUser
-                          ? Colors.white.withValues(alpha: 0.55)
-                          : _brand.withValues(alpha: 0.72),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        child: Text(
-                          m.text,
-                          style: GoogleFonts.montserrat(
-                            fontSize: 13,
-                            height: 1.35,
-                            color: isUser ? _brand : Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                FilledButton(
-                  onPressed: _busy
-                      ? null
-                      : () => setState(() {
-                            _step = _PublicChatStep.company;
-                            _error = null;
-                          }),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: _brand,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Text(
-                    'Continue to business chat',
-                    style: GoogleFonts.montserrat(fontWeight: FontWeight.w600),
-                  ),
-                ),
-                TextButton(
-                  onPressed: _busy
-                      ? null
-                      : () => setState(() {
-                            _step = _PublicChatStep.phone;
-                            _error = null;
-                          }),
-                  child: Text(
-                    'Send another WhatsApp message',
-                    style: GoogleFonts.montserrat(color: _accent),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildSetupForm() {
     final isPhone = _step == _PublicChatStep.phone;
     return Padding(
@@ -412,7 +279,7 @@ class _PublicSiteChatbotState extends State<PublicSiteChatbot> {
         children: [
           Text(
             isPhone
-                ? 'Your WhatsApp number'
+                ? 'Your phone number'
                 : 'Which company do you want to chat with?',
             style: GoogleFonts.montserrat(
               fontSize: 13,
@@ -420,17 +287,6 @@ class _PublicSiteChatbotState extends State<PublicSiteChatbot> {
               color: _brand,
             ),
           ),
-          if (isPhone) ...[
-            const SizedBox(height: 6),
-            Text(
-              'We will send a WhatsApp Cloud API message to this number.',
-              style: GoogleFonts.montserrat(
-                fontSize: 12,
-                height: 1.35,
-                color: _brand.withValues(alpha: 0.72),
-              ),
-            ),
-          ],
           const SizedBox(height: 10),
           TextField(
             controller: isPhone ? _phoneController : _companyController,
@@ -438,7 +294,7 @@ class _PublicSiteChatbotState extends State<PublicSiteChatbot> {
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => isPhone ? _submitPhone() : _submitCompany(),
             decoration: InputDecoration(
-              hintText: isPhone ? '233207926310' : 'e.g. GreenBrain Tech',
+              hintText: isPhone ? '+233...' : 'e.g. GreenBrain Tech',
               filled: true,
               fillColor: Colors.white.withValues(alpha: 0.45),
               border: OutlineInputBorder(
@@ -488,7 +344,7 @@ class _PublicSiteChatbotState extends State<PublicSiteChatbot> {
                     ),
                   )
                 : Text(
-                    isPhone ? 'Send WhatsApp message' : 'Start chat',
+                    isPhone ? 'Continue' : 'Start chat',
                     style: GoogleFonts.montserrat(fontWeight: FontWeight.w600),
                   ),
           ),
@@ -675,9 +531,7 @@ class _PublicSiteChatbotState extends State<PublicSiteChatbot> {
                                   child: Text(
                                     _step == _PublicChatStep.chat
                                         ? 'Chat with $_companyDisplayName'
-                                        : _step == _PublicChatStep.whatsappSent
-                                            ? 'WhatsApp message sent'
-                                            : 'Autobus Assistant',
+                                        : 'Autobus Assistant',
                                     style: GoogleFonts.montserrat(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w600,
@@ -702,8 +556,6 @@ class _PublicSiteChatbotState extends State<PublicSiteChatbot> {
                       ),
                       if (_step == _PublicChatStep.chat)
                         _buildChatArea()
-                      else if (_step == _PublicChatStep.whatsappSent)
-                        _buildWhatsAppSent()
                       else if (_step == _PublicChatStep.companyPick)
                         _buildCompanyPicker()
                       else
