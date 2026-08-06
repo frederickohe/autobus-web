@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' show ImageFilter;
 
 import 'package:autobus/barrel.dart';
@@ -32,9 +33,11 @@ class _PublicSiteChatbotState extends State<PublicSiteChatbot> {
   String? _companyDisplayName;
   List<CompanyLookupOption> _companyOptions = [];
   final List<ChatMessage> _messages = [];
+  Timer? _agentPollTimer;
 
   @override
   void dispose() {
+    _agentPollTimer?.cancel();
     _phoneController.dispose();
     _companyController.dispose();
     _messageController.dispose();
@@ -42,8 +45,44 @@ class _PublicSiteChatbotState extends State<PublicSiteChatbot> {
     super.dispose();
   }
 
+  void _stopAgentPolling() {
+    _agentPollTimer?.cancel();
+    _agentPollTimer = null;
+  }
+
+  void _startAgentPolling() {
+    _stopAgentPolling();
+    _agentPollTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      unawaited(_pollAgentMessages());
+    });
+  }
+
+  Future<void> _pollAgentMessages() async {
+    final phone = _phoneController.text.trim();
+    final company = (_companyNumber ?? '').trim();
+    if (_step != _PublicChatStep.chat || phone.isEmpty || company.isEmpty) {
+      return;
+    }
+    try {
+      final replies = await _repo.fetchAgentMessages(
+        phone: phone,
+        companyNumber: company,
+      );
+      if (!mounted || replies.isEmpty) return;
+      setState(() => _messages.addAll(replies));
+      _scrollToBottom();
+    } catch (_) {
+      // Polling is best-effort; ignore transient errors.
+    }
+  }
+
   void _toggleOpen() {
     setState(() => _open = !_open);
+    if (!_open) {
+      _stopAgentPolling();
+    } else if (_step == _PublicChatStep.chat) {
+      _startAgentPolling();
+    }
   }
 
   void _scrollToBottom() {
@@ -91,6 +130,7 @@ class _PublicSiteChatbotState extends State<PublicSiteChatbot> {
         ),
       );
     });
+    _startAgentPolling();
     _scrollToBottom();
   }
 

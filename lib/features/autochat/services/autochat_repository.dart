@@ -56,6 +56,19 @@ class AutoChatRepository {
         '${AppConfig.backendUrl}/api/v1/webhooks/send-whatsapp-message',
       );
 
+  Uri _agentMessagesUri({
+    required String customerNumber,
+    required String companyNumber,
+  }) =>
+      Uri.parse(
+        '${AppConfig.backendUrl}/api/v1/webhooks/agent-messages',
+      ).replace(
+        queryParameters: {
+          'customer_number': customerNumber.trim(),
+          'company_number': companyNumber.trim(),
+        },
+      );
+
   /// Send a WhatsApp Cloud API template via the Autobus backend (chat bubble demo).
   Future<Map<String, dynamic>> sendWhatsAppMessage(String phone) async {
     final res = await client.post(
@@ -204,5 +217,38 @@ class AutoChatRepository {
       sender: Sender.bot,
       status: MessageStatus.sent,
     );
+  }
+
+  /// Poll for agent intervention replies queued for this public chat session.
+  Future<List<ChatMessage>> fetchAgentMessages({
+    required String phone,
+    required String companyNumber,
+  }) async {
+    final company = companyNumber.trim();
+    if (phone.trim().isEmpty || company.isEmpty) return const [];
+
+    final res = await client.get(
+      _agentMessagesUri(customerNumber: phone, companyNumber: company),
+      headers: AppConfig.webhookHeaders(),
+    );
+    if (res.statusCode != 200) return const [];
+
+    final data = jsonDecode(res.body);
+    if (data is! Map) return const [];
+    final raw = data['messages'];
+    if (raw is! List || raw.isEmpty) return const [];
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    return [
+      for (var i = 0; i < raw.length; i++)
+        ChatMessage(
+          id: '$now-agent-$i',
+          userId: phone.trim(),
+          text: raw[i].toString(),
+          timestamp: DateTime.now(),
+          sender: Sender.bot,
+          status: MessageStatus.sent,
+        ),
+    ];
   }
 }
