@@ -171,6 +171,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        if (data is Map && data['success'] == false) {
+          emit(
+            AuthError(
+              message: (data['message'] ?? 'OTP verification failed').toString(),
+              source: 'signup_otp',
+            ),
+          );
+          return;
+        }
         emit(
           SignupOtpVerified(
             phone: event.phone,
@@ -184,7 +193,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         try {
           final errorData = json.decode(response.body);
           if (errorData is Map && errorData['detail'] != null) {
-            errorMsg = errorData['detail'];
+            final detail = errorData['detail'];
+            if (detail is List && detail.isNotEmpty) {
+              // Pydantic 422 shape
+              final first = detail.first;
+              errorMsg = first is Map
+                  ? (first['msg'] ?? errorMsg).toString()
+                  : detail.toString();
+            } else {
+              errorMsg = detail.toString();
+            }
           }
         } catch (_) {}
         emit(AuthError(message: errorMsg, source: 'signup_otp'));
