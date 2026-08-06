@@ -5,7 +5,13 @@
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>This app requires access to speech recognition to convert spoken words into text.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>This app requires access to the microphone to capture audio for speech recognition.</string>
+	<string>This app requires access to the microphone to capture audio for speech recognition and video recording.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app requires camera access to take photos and record videos for marketing campaigns and your profile.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app requires photo library access to select images and videos for marketing campaigns and your profile.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>This app may save media to your photo library when you download campaign assets.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

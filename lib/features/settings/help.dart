@@ -118,10 +118,6 @@ class HelpPage extends StatelessWidget {
                           ),
                         ),
                         subtitle: const Text("support@useautobus.com"),
-                        trailing: const Icon(
-                          Icons.chevron_right,
-                          color: Colors.black54,
-                        ),
                       ),
 
                       /// Website Tile
@@ -139,10 +135,6 @@ class HelpPage extends StatelessWidget {
                           ),
                         ),
                         subtitle: const Text("www.useautobus.com"),
-                        trailing: const Icon(
-                          Icons.chevron_right,
-                          color: Colors.black54,
-                        ),
                       ),
                     ],
                   ),

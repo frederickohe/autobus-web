@@ -665,6 +665,89 @@ class ApiService {
     );
   }
 
+  /// Preview extractable text for an intelligence file (Word/PDF/etc.).
+  ///
+  /// Backend: `GET /api/v1/storage/me/rag-preview/{file_name}?folder=<folder>`
+  Future<String> previewMyRagFileText({
+    required String folder,
+    required String fileName,
+  }) async {
+    final normalizedFolder = folder.trim().replaceAll('\\', '/');
+    final uri = Uri.parse(
+      '$baseUrl/storage/me/rag-preview/${Uri.encodeComponent(fileName)}',
+    ).replace(queryParameters: {'folder': normalizedFolder});
+
+    final response = await httpClient.get(uri);
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map) {
+        final empty = decoded['empty'] == true;
+        final text = (decoded['text'] ?? '').toString();
+        if (empty || text.trim().isEmpty) {
+          throw Exception(
+            'No readable text could be extracted from this file.',
+          );
+        }
+        final truncated = decoded['truncated'] == true;
+        return truncated ? '$text\n\n…' : text;
+      }
+      throw Exception('Unexpected preview response');
+    }
+    if (response.statusCode == 401) {
+      throw Exception('Session expired');
+    }
+    throw Exception(
+      'Failed to preview file: ${response.statusCode} ${response.body}',
+    );
+  }
+
+  /// Clear all intelligence files + document/website vectors.
+  ///
+  /// Backend: `DELETE /api/v1/storage/me/clear-intelligence?folder=<folder>`
+  Future<String> clearMyIntelligence({
+    String folder = chatbotStorageFolder,
+  }) async {
+    final normalizedFolder = folder.trim().replaceAll('\\', '/');
+    final uri = Uri.parse('$baseUrl/storage/me/clear-intelligence').replace(
+      queryParameters: {'folder': normalizedFolder},
+    );
+
+    final response = await httpClient.delete(uri);
+    if (response.statusCode == 200 || response.statusCode == 202) {
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map && decoded['message'] != null) {
+          return decoded['message'].toString();
+        }
+      } catch (_) {}
+      return 'Intelligence cleared. You can upload again.';
+    }
+    if (response.statusCode == 401) {
+      throw Exception('Session expired');
+    }
+    throw Exception(
+      'Failed to clear intelligence: ${response.statusCode} ${response.body}',
+    );
+  }
+
+  /// Download a user's storage file bytes (authenticated).
+  Future<List<int>> downloadMyStorageFileBytes({
+    required String folder,
+    required String fileName,
+  }) async {
+    final uri = myStorageDownloadUri(folder: folder, fileName: fileName);
+    final response = await httpClient.get(uri);
+    if (response.statusCode == 200) {
+      return response.bodyBytes;
+    }
+    if (response.statusCode == 401) {
+      throw Exception('Session expired');
+    }
+    throw Exception(
+      'Failed to download file: ${response.statusCode} ${response.body}',
+    );
+  }
+
   /// Upload a file to the authenticated user's folder.
   ///
   /// Backend: `POST /api/v1/storage/me/upload-multiple?folder=<folder>`

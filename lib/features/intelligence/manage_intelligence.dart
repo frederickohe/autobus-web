@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:autobus/barrel.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
@@ -16,6 +19,11 @@ bool _ragDocIsWebsite(Map<String, dynamic> doc) {
       .toLowerCase();
   if (type == 'website') return true;
   return _ragDocSourceUrl(doc) != null;
+}
+
+bool _ragFileLooksLikePlainText(String fileName) {
+  final lower = fileName.trim().toLowerCase();
+  return lower.endsWith('.txt') || lower.endsWith('.csv');
 }
 
 /// Returns a full http(s) URL for the RAG indexer, or null if invalid.
@@ -929,34 +937,78 @@ class _IntelligenceHistoryPageState extends State<IntelligenceHistoryPage> {
       _showSnack('Invalid URL');
       return;
     }
-    if (!await canLaunchUrl(uri)) {
+    try {
+      final ok = await launchUrl(
+        uri,
+        mode: LaunchMode.platformDefault,
+        webOnlyWindowName: '_blank',
+      );
+      if (!ok) _showSnack('Could not open website');
+    } catch (_) {
       _showSnack('Could not open website');
-      return;
     }
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   Future<void> _openFileUrl(Map<String, dynamic> doc) async {
     final raw = (doc['file_url'] ?? '').toString().trim();
-    if (raw.isEmpty) {
+    if (raw.isNotEmpty) {
+      final uri = Uri.tryParse(raw);
+      if (uri != null) {
+        try {
+          final ok = await launchUrl(
+            uri,
+            mode: LaunchMode.platformDefault,
+            webOnlyWindowName: '_blank',
+          );
+          if (ok) return;
+        } catch (_) {}
+      }
+    }
+
+    // Fallback: authenticated download then open a local temp copy.
+    final name = _fileName(doc);
+    if (name.isEmpty) {
       _showSnack('No download link for this file');
       return;
     }
-    final uri = Uri.tryParse(raw);
-    if (uri == null) {
-      _showSnack('Invalid file link');
+    if (kIsWeb) {
+      _showSnack(
+        'Could not open this file in the browser. The download link may have expired — try again from history.',
+      );
       return;
     }
-    if (!await canLaunchUrl(uri)) {
-      _showSnack('Could not open file');
-      return;
+    try {
+      _showSnack('Preparing file…');
+      final api = context.read<ApiService>();
+      final bytes = await api.downloadMyStorageFileBytes(
+        folder: ApiService.chatbotStorageFolder,
+        fileName: name,
+      );
+      final dest = File(
+        '${Directory.systemTemp.path}${Platform.pathSeparator}$name',
+      );
+      await dest.writeAsBytes(bytes, flush: true);
+      final fileUri = Uri.file(dest.path);
+      final ok = await launchUrl(
+        fileUri,
+        mode: LaunchMode.platformDefault,
+      );
+      if (!ok) {
+        _showSnack(
+          'Downloaded "$name", but no app could open it on this device.',
+        );
+      }
+    } catch (e) {
+      _showSnack(e.toString().replaceFirst('Exception: ', ''));
     }
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   Future<void> _viewScrapedContent(Map<String, dynamic> doc) async {
-    final raw = (doc['file_url'] ?? '').toString().trim();
-    if (raw.isEmpty) {
+    final isWebsite = _ragDocIsWebsite(doc);
+    final name = _fileName(doc);
+    final rawUrl = (doc['file_url'] ?? '').toString().trim();
+
+    if (!isWebsite && name.isEmpty && rawUrl.isEmpty) {
       _showSnack('No content link available');
       return;
     }
@@ -973,18 +1025,18 @@ class _IntelligenceHistoryPageState extends State<IntelligenceHistoryPage> {
             side: const BorderSide(color: Color(0xFF3F1163)),
           ),
           title: Text(
-            _ragDocIsWebsite(doc) ? 'Indexed content' : 'File preview',
+            isWebsite ? 'Indexed content' : 'Indexed text preview',
             style: GoogleFonts.outfit(color: Colors.white, fontSize: 18),
           ),
           content: SizedBox(
             width: double.maxFinite,
             height: 320,
             child: FutureBuilder<String>(
-              future: _fetchTextPreview(raw),
+              future: _loadPreviewText(doc),
               builder: (context, snapshot) {
                 if (snapshot.connectionState != ConnectionState.done) {
                   return const Center(
-                    child:                     const AutobusLoadingIndicator(size: 28),
+                    child: AutobusLoadingIndicator(size: 28),
                   );
                 }
                 if (snapshot.hasError) {
@@ -1023,6 +1075,17 @@ class _IntelligenceHistoryPageState extends State<IntelligenceHistoryPage> {
             ),
           ),
           actions: [
+            if (!isWebsite)
+              TextButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  _openFileUrl(doc);
+                },
+                child: Text(
+                  'Open original',
+                  style: GoogleFonts.outfit(color: Colors.white70),
+                ),
+              ),
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
               child: Text(
@@ -1036,15 +1099,111 @@ class _IntelligenceHistoryPageState extends State<IntelligenceHistoryPage> {
     );
   }
 
+  Future<String> _loadPreviewText(Map<String, dynamic> doc) async {
+    final isWebsite = _ragDocIsWebsite(doc);
+    final name = _fileName(doc);
+    final rawUrl = (doc['file_url'] ?? '').toString().trim();
+
+    // Websites and plain text can be shown from the stored object URL.
+    if (isWebsite || _ragFileLooksLikePlainText(name)) {
+      if (rawUrl.isEmpty) {
+        throw Exception('No content link available');
+      }
+      return _fetchTextPreview(rawUrl);
+    }
+
+    // Word/PDF/spreadsheet: never render binary as text — use extracted index text.
+    if (name.isEmpty) {
+      throw Exception('No file name available for preview');
+    }
+    final api = context.read<ApiService>();
+    return api.previewMyRagFileText(
+      folder: ApiService.chatbotStorageFolder,
+      fileName: name,
+    );
+  }
+
   Future<String> _fetchTextPreview(String url) async {
     final response = await http.get(Uri.parse(url));
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception('Failed to load content (${response.statusCode})');
     }
+    // Guard against accidentally treating binary as UTF-8 text.
+    final contentType = response.headers['content-type']?.toLowerCase() ?? '';
+    if (contentType.contains('application/pdf') ||
+        contentType.contains('officedocument') ||
+        contentType.contains('msword') ||
+        contentType.contains('octet-stream')) {
+      throw Exception(
+        'This file cannot be previewed as plain text. Use Open original.',
+      );
+    }
     final body = response.body.trim();
+    if (body.contains('\u0000')) {
+      throw Exception(
+        'This file cannot be previewed as plain text. Use Open original.',
+      );
+    }
     const maxChars = 12000;
     if (body.length <= maxChars) return body;
     return '${body.substring(0, maxChars)}\n\n…';
+  }
+
+  Future<void> _clearIntelligence() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1A0A2E),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: Color(0xFF3F1163)),
+          ),
+          title: Text(
+            'Clear intelligence?',
+            style: GoogleFonts.outfit(color: Colors.white, fontSize: 18),
+          ),
+          content: Text(
+            'This removes all uploaded documents and websites from storage '
+            'and from the search index. Chat history is kept. '
+            'You can upload your data again afterwards.',
+            style: GoogleFonts.outfit(
+              color: Colors.white.withValues(alpha: 0.8),
+              fontSize: 14,
+              height: 1.4,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(
+                'Cancel',
+                style: GoogleFonts.outfit(color: Colors.white70),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(
+                'Clear all',
+                style: GoogleFonts.outfit(color: const Color(0xFFFF6B6B)),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      final api = context.read<ApiService>();
+      final message = await api.clearMyIntelligence();
+      if (!mounted) return;
+      await _loadDocuments();
+      _showSnack(message);
+    } catch (e) {
+      if (!mounted) return;
+      _showSnack(e.toString().replaceFirst('Exception: ', ''));
+    }
   }
 
   void _showSnack(String message) {
@@ -1138,7 +1297,30 @@ class _IntelligenceHistoryPageState extends State<IntelligenceHistoryPage> {
                     creditCategory: CreditCategory.llm,
                     padding: EdgeInsets.zero,
                   ),
-                  const SizedBox(height: 32),
+                  if (!_loading &&
+                      _loadError == null &&
+                      _documents.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        onPressed: _clearIntelligence,
+                        icon: const Icon(
+                          Icons.delete_sweep_outlined,
+                          color: Color(0xFFFF6B6B),
+                          size: 18,
+                        ),
+                        label: Text(
+                          'Clear intelligence',
+                          style: GoogleFonts.outfit(
+                            color: const Color(0xFFFF6B6B),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 20),
                   Expanded(
                     child: _loading
                         ? const Center(
@@ -1326,7 +1508,7 @@ class _IntelligenceHistoryPageState extends State<IntelligenceHistoryPage> {
                                                     child: Text(
                                                       isWebsite
                                                           ? 'View indexed content'
-                                                          : 'View file',
+                                                          : 'View indexed text',
                                                       style: GoogleFonts.outfit(
                                                         color: Colors.white
                                                             .withValues(
@@ -1344,7 +1526,7 @@ class _IntelligenceHistoryPageState extends State<IntelligenceHistoryPage> {
                                                       onPressed: () =>
                                                           _openFileUrl(doc),
                                                       child: Text(
-                                                        'Open in browser',
+                                                        'Open original',
                                                         style:
                                                             GoogleFonts.outfit(
                                                               color: Colors

@@ -301,14 +301,20 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(AuthLoading());
     try {
+      final body = <String, dynamic>{
+        'otp': event.code,
+        'new_password': event.newPassword,
+      };
+      if (event.email.isNotEmpty) {
+        body['email'] = event.email;
+      } else if (event.phone.isNotEmpty) {
+        body['phone'] = event.phone;
+      }
+
       final response = await http.post(
         Uri.parse('${AppConfig.backendUrl}/api/v1/auth/no-auth/reset-password'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'email': event.email,
-          'otp': event.code,
-          'new_password': event.newPassword,
-        }),
+        body: json.encode(body),
       );
 
       if (response.statusCode == 200) {
@@ -318,7 +324,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         try {
           final errorData = json.decode(response.body);
           if (errorData is Map && errorData['detail'] != null) {
-            errorMsg = errorData['detail'];
+            errorMsg = errorData['detail'].toString();
           }
         } catch (_) {}
         emit(AuthError(message: errorMsg, source: 'reset_password'));
@@ -334,20 +340,27 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(AuthLoading());
     try {
+      final body = <String, dynamic>{};
+      if (event.email.isNotEmpty) {
+        body['email'] = event.email;
+      } else if (event.phone.isNotEmpty) {
+        body['phone'] = event.phone;
+      }
+
       final response = await http.post(
         Uri.parse('${AppConfig.backendUrl}/api/v1/auth/verify-account'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({'email': event.email}),
+        body: json.encode(body),
       );
 
       if (response.statusCode == 200) {
-        emit(EmailExists(email: event.email));
+        emit(EmailExists(email: event.email, phone: event.phone));
       } else {
-        String errorMsg = 'Email check failed';
+        String errorMsg = 'Account check failed';
         try {
           final errorData = json.decode(response.body);
           if (errorData is Map && errorData['detail'] != null) {
-            errorMsg = errorData['detail'];
+            errorMsg = errorData['detail'].toString();
           }
         } catch (_) {}
         emit(AuthError(message: errorMsg, source: 'check_email'));
@@ -365,10 +378,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(AuthLoading());
     try {
+      final body = <String, dynamic>{};
+      if (event.email.isNotEmpty) {
+        body['email'] = event.email;
+      } else if (event.phone.isNotEmpty) {
+        body['phone'] = event.phone;
+      }
+
       final response = await http.post(
         Uri.parse('${AppConfig.backendUrl}/api/v1/otp/send'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({'email': event.email, 'phone': event.phone}),
+        body: json.encode(body),
       );
 
       if (response.statusCode == 200) {
@@ -376,6 +396,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(
           ResetCodeSent(
             email: event.email,
+            phone: event.phone,
             message: data['message'] ?? 'Reset code sent successfully',
           ),
         );
@@ -384,7 +405,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         try {
           final errorData = json.decode(response.body);
           if (errorData is Map && errorData['detail'] != null) {
-            errorMsg = errorData['detail'];
+            errorMsg = errorData['detail'].toString();
           }
         } catch (_) {}
         emit(AuthError(message: errorMsg, source: 'send_reset_code'));
@@ -400,24 +421,37 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(AuthLoading());
     try {
+      final body = <String, dynamic>{
+        'otp': event.code,
+        // Peek only — password reset endpoint consumes the OTP.
+        'consume': false,
+      };
+      if (event.email.isNotEmpty) {
+        body['email'] = event.email;
+      } else if (event.phone.isNotEmpty) {
+        body['phone'] = event.phone;
+      }
+
       final response = await http.post(
         Uri.parse('${AppConfig.backendUrl}/api/v1/otp/verify'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'email': event.email,
-          'phone': event.phone,
-          'otp': event.code,
-        }),
+        body: json.encode(body),
       );
 
       if (response.statusCode == 200) {
-        emit(ResetCodeVerified(email: event.email, code: event.code));
+        emit(
+          ResetCodeVerified(
+            email: event.email,
+            phone: event.phone,
+            code: event.code,
+          ),
+        );
       } else {
         String errorMsg = 'Invalid verification code';
         try {
           final errorData = json.decode(response.body);
           if (errorData is Map && errorData['detail'] != null) {
-            errorMsg = errorData['detail'];
+            errorMsg = errorData['detail'].toString();
           }
         } catch (_) {}
         emit(AuthError(message: errorMsg, source: 'verify_code'));

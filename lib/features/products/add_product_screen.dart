@@ -19,7 +19,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _stockCtrl = TextEditingController();
   final _linkCtrl = TextEditingController();
 
-  final List<ProductStagingSlot> _imageSlots = [ProductStagingSlot()];
+  final List<ProductStagingSlot> _imageSlots = [];
   bool _saving = false;
 
   @override

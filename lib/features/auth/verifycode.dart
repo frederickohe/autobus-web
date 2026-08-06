@@ -2,8 +2,13 @@ import 'package:autobus/barrel.dart';
 
 class VerifyCode extends StatefulWidget {
   final String email;
+  final String phone;
 
-  const VerifyCode({super.key, required this.email});
+  const VerifyCode({
+    super.key,
+    this.email = '',
+    this.phone = '',
+  });
 
   @override
   State<VerifyCode> createState() => _VerifyCodeState();
@@ -11,6 +16,18 @@ class VerifyCode extends StatefulWidget {
 
 class _VerifyCodeState extends State<VerifyCode> {
   final TextEditingController codeController = TextEditingController();
+
+  String get _destination {
+    if (widget.email.isNotEmpty) return widget.email;
+    if (widget.phone.isNotEmpty) return widget.phone;
+    return 'your account';
+  }
+
+  @override
+  void dispose() {
+    codeController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,14 +37,26 @@ class _VerifyCodeState extends State<VerifyCode> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) =>
-                  ResetPassword(email: state.email, code: codeController.text),
+              builder: (context) => ResetPassword(
+                email: state.email,
+                phone: state.phone,
+                code: codeController.text.trim(),
+              ),
             ),
+          );
+        } else if (state is ResetCodeSent) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message)),
+          );
+        } else if (state is AuthError &&
+            (state.source == 'verify_code' ||
+                state.source == 'send_reset_code')) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
           );
         }
       },
       child: Scaffold(
-        // ... your existing scaffold code
         resizeToAvoidBottomInset: false,
         backgroundColor: Colors.white,
         body: Padding(
@@ -39,7 +68,6 @@ class _VerifyCodeState extends State<VerifyCode> {
               Stack(
                 alignment: Alignment.center,
                 children: [
-                  // Centered text
                   Center(
                     child: Text(
                       'Verify Code',
@@ -50,8 +78,6 @@ class _VerifyCodeState extends State<VerifyCode> {
                       ),
                     ),
                   ),
-
-                  // Back button positioned on the left
                   Positioned(
                     left: 0,
                     child: GestureDetector(
@@ -89,7 +115,19 @@ class _VerifyCodeState extends State<VerifyCode> {
                   child: Image.asset('assets/img/bot.png'),
                 ),
               ),
-              SizedBox(height: MediaQuery.of(context).size.height * 0.1),
+              SizedBox(height: MediaQuery.of(context).size.height * 0.06),
+              Padding(
+                padding: const EdgeInsets.only(left: 20.0, right: 20.0),
+                child: Text(
+                  'Enter the code sent to $_destination',
+                  style: GoogleFonts.montserrat(
+                    color: Colors.black54,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
               Padding(
                 padding: EdgeInsets.only(left: 20.0, right: 20.0),
                 child: Text(
@@ -122,9 +160,16 @@ class _VerifyCodeState extends State<VerifyCode> {
               Padding(
                 padding: const EdgeInsets.only(left: 20.0, right: 20.0),
                 child: GestureDetector(
-                  onTap: () {},
+                  onTap: () {
+                    context.read<AuthBloc>().add(
+                      SendResetCodeEvent(
+                        email: widget.email,
+                        phone: widget.phone,
+                      ),
+                    );
+                  },
                   child: Text(
-                    'Did Not Receeve Code? Resend Code',
+                    'Did not receive code? Resend Code',
                     style: GoogleFonts.montserrat(
                       color: Colors.black,
                       fontSize: 13,
@@ -137,7 +182,7 @@ class _VerifyCodeState extends State<VerifyCode> {
               Center(
                 child: AppButton(
                   onPressed: () {
-                    if (codeController.text.isEmpty) {
+                    if (codeController.text.trim().isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('Please enter the verification code'),
@@ -150,46 +195,12 @@ class _VerifyCodeState extends State<VerifyCode> {
                     context.read<AuthBloc>().add(
                       VerifyResetCodeEvent(
                         email: widget.email,
-                        code: codeController.text,
+                        phone: widget.phone,
+                        code: codeController.text.trim(),
                       ),
                     );
                   },
-                  buttonText: 'VerifyCode',
-                ),
-              ),
-              SizedBox(height: MediaQuery.of(context).size.height * 0.03),
-              Center(
-                child: Text(
-                  'Dont have an Account ?',
-                  style: GoogleFonts.montserrat(
-                    color: Colors.black,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Center(
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      PageTransition(
-                        type: PageTransitionType.rightToLeftWithFade,
-                        childCurrent: const Signup(),
-                        duration: const Duration(milliseconds: 1000),
-                        reverseDuration: const Duration(milliseconds: 600),
-                        child: const Signup(),
-                      ),
-                    );
-                  },
-                  child: Text(
-                    'Verify',
-                    style: GoogleFonts.montserrat(
-                      color: Colors.black,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
+                  buttonText: 'Verify Code',
                 ),
               ),
             ],

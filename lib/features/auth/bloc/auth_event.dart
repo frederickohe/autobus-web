@@ -80,18 +80,19 @@ class RequestPasswordResetEvent extends AuthEvent {
 // Add these alongside your existing events
 class CheckEmailExistsEvent extends AuthEvent {
   final String email;
+  final String phone;
 
-  const CheckEmailExistsEvent({required this.email});
+  const CheckEmailExistsEvent({this.email = '', this.phone = ''});
 
   @override
-  List<Object> get props => [email];
+  List<Object> get props => [email, phone];
 }
 
 class SendResetCodeEvent extends AuthEvent {
   final String email;
   final String phone;
 
-  const SendResetCodeEvent({required this.email, this.phone = ''});
+  const SendResetCodeEvent({this.email = '', this.phone = ''});
 
   @override
   List<Object> get props => [email, phone];
@@ -103,9 +104,9 @@ class VerifyResetCodeEvent extends AuthEvent {
   final String code;
 
   const VerifyResetCodeEvent({
-    required this.email,
-    required this.code,
+    this.email = '',
     this.phone = '',
+    required this.code,
   });
 
   @override
@@ -114,17 +115,19 @@ class VerifyResetCodeEvent extends AuthEvent {
 
 class ResetPasswordEvent extends AuthEvent {
   final String email;
-  final String code; // Optional, if you need to pass the code
+  final String phone;
+  final String code;
   final String newPassword;
 
   const ResetPasswordEvent({
-    required this.email,
+    this.email = '',
+    this.phone = '',
     required this.code,
     required this.newPassword,
   });
 
   @override
-  List<Object> get props => [email, code, newPassword];
+  List<Object> get props => [email, phone, code, newPassword];
 }
 
 // Session Management Events

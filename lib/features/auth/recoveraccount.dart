@@ -7,30 +7,40 @@ class RecoverAccount extends StatefulWidget {
 }
 
 class _RecoverAccountState extends State<RecoverAccount> {
-  final TextEditingController emailController = TextEditingController();
-  bool _emailVerified = false;
+  final TextEditingController identifierController = TextEditingController();
+
+  bool _looksLikeEmail(String value) => value.contains('@');
+
+  @override
+  void dispose() {
+    identifierController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is EmailExists) {
-          setState(() => _emailVerified = true);
-          // Show dialog or message that email exists and code will be sent
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Email verified. Sending reset code...')),
+            SnackBar(content: Text('Account found. Sending reset code...')),
           );
-          // Automatically send the reset code
-          context.read<AuthBloc>().add(SendResetCodeEvent(email: state.email));
+          context.read<AuthBloc>().add(
+            SendResetCodeEvent(email: state.email, phone: state.phone),
+          );
         } else if (state is ResetCodeSent) {
-          // Navigate to VerifyCode screen
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => VerifyCode(email: state.email),
+              builder: (context) => VerifyCode(
+                email: state.email,
+                phone: state.phone,
+              ),
             ),
           );
-        } else if (state is AuthError && state.source == 'check_email') {
+        } else if (state is AuthError &&
+            (state.source == 'check_email' ||
+                state.source == 'send_reset_code')) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(state.message), backgroundColor: Colors.red),
           );
@@ -48,10 +58,9 @@ class _RecoverAccountState extends State<RecoverAccount> {
               Stack(
                 alignment: Alignment.center,
                 children: [
-                  // Centered text
                   Center(
                     child: Text(
-                      'Verify Email',
+                      'Reset Password',
                       style: GoogleFonts.montserrat(
                         color: Colors.black,
                         fontSize: 26,
@@ -59,8 +68,6 @@ class _RecoverAccountState extends State<RecoverAccount> {
                       ),
                     ),
                   ),
-
-                  // Back button positioned on the left
                   Positioned(
                     left: 0,
                     child: GestureDetector(
@@ -98,11 +105,11 @@ class _RecoverAccountState extends State<RecoverAccount> {
                   spacing: 14,
                 ),
               ),
-              SizedBox(height: MediaQuery.of(context).size.height * 0.1),
+              SizedBox(height: MediaQuery.of(context).size.height * 0.08),
               Padding(
                 padding: EdgeInsets.only(left: 20.0, right: 20.0),
                 child: Text(
-                  'Email',
+                  'Email or phone number',
                   style: GoogleFonts.montserrat(
                     color: const Color.fromARGB(255, 12, 12, 12),
                     fontSize: 13,
@@ -113,10 +120,10 @@ class _RecoverAccountState extends State<RecoverAccount> {
               Padding(
                 padding: const EdgeInsets.only(left: 20.0, right: 20.0),
                 child: TextField(
-                  controller: emailController,
+                  controller: identifierController,
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
-                    hintText: 'name@example.com',
+                    hintText: 'name@example.com or phone number',
                     hintStyle: GoogleFonts.montserrat(
                       color: Colors.black38,
                       fontSize: 14,
@@ -126,25 +133,43 @@ class _RecoverAccountState extends State<RecoverAccount> {
                   ),
                 ),
               ),
+              Padding(
+                padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 12),
+                child: Text(
+                  'We will send a one-time code to reset your password.',
+                  style: GoogleFonts.montserrat(
+                    color: Colors.black54,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ),
               SizedBox(height: MediaQuery.of(context).size.height * 0.1),
               Center(
                 child: AppButton(
                   onPressed: () {
-                    if (emailController.text.isEmpty) {
+                    final identifier = identifierController.text.trim();
+                    if (identifier.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Please enter your email'),
+                          content: Text('Please enter your email or phone number'),
                           backgroundColor: Colors.red,
                         ),
                       );
                       return;
                     }
 
-                    context.read<AuthBloc>().add(
-                      CheckEmailExistsEvent(email: emailController.text),
-                    );
+                    if (_looksLikeEmail(identifier)) {
+                      context.read<AuthBloc>().add(
+                        CheckEmailExistsEvent(email: identifier),
+                      );
+                    } else {
+                      context.read<AuthBloc>().add(
+                        CheckEmailExistsEvent(phone: identifier),
+                      );
+                    }
                   },
-                  buttonText: 'Verify',
+                  buttonText: 'Send Code',
                 ),
               ),
             ],

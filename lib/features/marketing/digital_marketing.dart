@@ -5,6 +5,7 @@ import 'package:autobus/barrel.dart';
 import 'package:autobus/features/marketing/marketing_media_download.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
 
 const _kPrimary = Color(0xFF1A1A2E);
@@ -235,6 +236,8 @@ class _PromptBar extends StatelessWidget {
   final VoidCallback? onAttach;
   final VoidCallback? onGenerate;
   final IconData generateIcon;
+  final int minLines;
+  final int maxLines;
 
   const _PromptBar({
     required this.controller,
@@ -242,6 +245,8 @@ class _PromptBar extends StatelessWidget {
     this.onAttach,
     this.onGenerate,
     this.generateIcon = Icons.auto_awesome,
+    this.minLines = 2,
+    this.maxLines = 4,
   });
 
   @override
@@ -266,8 +271,8 @@ class _PromptBar extends StatelessWidget {
         children: [
           TextField(
             controller: controller,
-            minLines: 4,
-            maxLines: 6,
+            minLines: minLines,
+            maxLines: maxLines,
             onSubmitted: (_) => onGenerate?.call(),
             style: GoogleFonts.montserrat(fontSize: 14, height: 1.45),
             decoration: InputDecoration(
@@ -451,6 +456,7 @@ class _GenerateMediaPage extends StatefulWidget {
 class _GenerateMediaPageState extends State<_GenerateMediaPage> {
   final TextEditingController _promptCtrl = TextEditingController();
   final TextEditingController _textBodyCtrl = TextEditingController();
+  final FocusNode _textBodyFocus = FocusNode();
 
   final ApiService _apiService = ApiService(
     httpClient: SessionAwareHttpClient(tokenService: TokenService()),
@@ -512,6 +518,7 @@ class _GenerateMediaPageState extends State<_GenerateMediaPage> {
     _textBodyCtrl.addListener(() {
       if (_isText) _activeContent.manualText = _textBodyCtrl.text;
     });
+    _textBodyFocus.addListener(() => setState(() {}));
 
     if (_activeContent.manualText != null) {
       _textBodyCtrl.text = _activeContent.manualText!;
@@ -523,6 +530,7 @@ class _GenerateMediaPageState extends State<_GenerateMediaPage> {
 
   @override
   void dispose() {
+    _textBodyFocus.dispose();
     _promptCtrl.dispose();
     _textBodyCtrl.dispose();
     super.dispose();
@@ -623,32 +631,233 @@ class _GenerateMediaPageState extends State<_GenerateMediaPage> {
     }
   }
 
+  Future<ImageSource?> _chooseMediaSource({required bool isPicture}) {
+    return showModalBottomSheet<ImageSource>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: Colors.white,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(
+                isPicture
+                    ? Icons.photo_camera_outlined
+                    : Icons.videocam_outlined,
+              ),
+              title: Text(isPicture ? 'Take photo' : 'Record video'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from gallery'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _mediaExtension(String nameOrPath, {required String fallback}) {
+    final dot = nameOrPath.lastIndexOf('.');
+    if (dot <= 0 || dot == nameOrPath.length - 1) return fallback;
+    final ext = nameOrPath.substring(dot).toLowerCase();
+    if (ext.length > 5) return fallback;
+    return ext;
+  }
+
+  /// Gallery picks can return a path before the native copy finishes. Wait for
+  /// a readable file, then fall back to copying bytes into a temp file.
+  Future<String?> _ensureLocalMediaFile(
+    String path, {
+    required String preferredName,
+    required String fallbackExt,
+  }) async {
+    final file = File(path);
+    for (var i = 0; i < 40; i++) {
+      try {
+        if (await file.exists() && await file.length() > 0) {
+          return path;
+        }
+      } catch (_) {}
+      await Future<void>.delayed(const Duration(milliseconds: 125));
+    }
+
+    try {
+      final bytes = await XFile(path).readAsBytes();
+      if (bytes.isEmpty) return null;
+      final ext = _mediaExtension(preferredName, fallback: fallbackExt);
+      final dest = File(
+        '${Directory.systemTemp.path}/autobus_media_'
+        '${DateTime.now().millisecondsSinceEpoch}$ext',
+      );
+      await dest.writeAsBytes(bytes, flush: true);
+      if (await dest.exists() && await dest.length() > 0) {
+        return dest.path;
+      }
+    } catch (_) {}
+    return null;
+  }
+
   Future<void> _pickAndAttachMedia() async {
     if (_isText) return;
+    if (_activeContent.genState == MediaGenState.generating) return;
 
-    final allowedExtensions = _activeContent.type == MarketingContentType.pictures
+    final isPicture = _activeContent.type == MarketingContentType.pictures;
+
+    // Web has no reliable camera/gallery filesystem paths — keep FilePicker.
+    if (kIsWeb) {
+      await _pickAndAttachMediaWithFilePicker(isPicture: isPicture);
+      return;
+    }
+
+    final source = await _chooseMediaSource(isPicture: isPicture);
+    if (source == null || !mounted) return;
+
+    final slot = _activeContent;
+    final previousState = slot.genState;
+    final previousBytes = slot.generatedBytes;
+    final previousPath = slot.localFilePath;
+    final previousResult = slot.generatedResult;
+
+    setState(() {
+      slot.genState = MediaGenState.generating;
+    });
+
+    try {
+      final picker = ImagePicker();
+      if (isPicture) {
+        final picked = await picker.pickImage(
+          source: source,
+          imageQuality: 85,
+          maxWidth: 2000,
+        );
+        if (picked == null) {
+          if (!mounted) return;
+          setState(() {
+            slot.genState = previousState;
+            slot.generatedBytes = previousBytes;
+            slot.localFilePath = previousPath;
+            slot.generatedResult = previousResult;
+          });
+          return;
+        }
+
+        final bytes = await picked.readAsBytes();
+        if (bytes.isEmpty) {
+          throw Exception('Selected image was empty.');
+        }
+
+        final stablePath = await _ensureLocalMediaFile(
+          picked.path,
+          preferredName: picked.name,
+          fallbackExt: '.jpg',
+        );
+
+        if (!mounted) return;
+        setState(() {
+          slot.generatedBytes = bytes;
+          slot.localFilePath = stablePath ?? picked.path;
+          slot.generatedResult = picked.name;
+          slot.genState = MediaGenState.ready;
+        });
+        return;
+      }
+
+      final picked = await picker.pickVideo(source: source);
+      if (picked == null) {
+        if (!mounted) return;
+        setState(() {
+          slot.genState = previousState;
+          slot.generatedBytes = previousBytes;
+          slot.localFilePath = previousPath;
+          slot.generatedResult = previousResult;
+        });
+        return;
+      }
+
+      String? stablePath;
+      final pickedPath = picked.path.trim();
+      if (pickedPath.isNotEmpty) {
+        stablePath = await _ensureLocalMediaFile(
+          pickedPath,
+          preferredName: picked.name,
+          fallbackExt: '.mp4',
+        );
+      }
+      if (stablePath == null) {
+        final bytes = await picked.readAsBytes();
+        if (bytes.isEmpty) {
+          throw Exception('Unable to open selected video.');
+        }
+        final ext = _mediaExtension(picked.name, fallback: '.mp4');
+        final dest = File(
+          '${Directory.systemTemp.path}/autobus_media_'
+          '${DateTime.now().millisecondsSinceEpoch}$ext',
+        );
+        await dest.writeAsBytes(bytes, flush: true);
+        if (!await dest.exists() || await dest.length() == 0) {
+          throw Exception('Unable to open selected video.');
+        }
+        stablePath = dest.path;
+      }
+
+      if (!mounted) return;
+      setState(() {
+        slot.generatedBytes = null;
+        slot.localFilePath = stablePath;
+        // Keep generatedResult for remote/AI URLs only — local path lives in
+        // localFilePath so publish/view checks don't treat a path as an URL.
+        slot.generatedResult = null;
+        slot.genState = MediaGenState.ready;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        slot.genState = previousState;
+        slot.generatedBytes = previousBytes;
+        slot.localFilePath = previousPath;
+        slot.generatedResult = previousResult;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isPicture
+                ? 'Unable to load selected image. Please try again.'
+                : 'Unable to open selected video. Please try again.',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _pickAndAttachMediaWithFilePicker({
+    required bool isPicture,
+  }) async {
+    final allowedExtensions = isPicture
         ? <String>['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp']
         : <String>['mp4', 'mov', 'avi', 'mkv', 'webm', 'm4v'];
 
-    final isPicture = _activeContent.type == MarketingContentType.pictures;
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: allowedExtensions,
       allowMultiple: false,
-      withData: isPicture && kIsWeb,
+      withData: true,
     );
 
     if (!mounted || result == null || result.files.isEmpty) return;
 
     final file = result.files.single;
     final path = file.path?.trim();
+    Uint8List? bytes = file.bytes;
 
     if (isPicture) {
-      Uint8List? bytes = file.bytes;
       if ((bytes == null || bytes.isEmpty) &&
-          !kIsWeb &&
           path != null &&
-          path.isNotEmpty) {
+          path.isNotEmpty &&
+          !kIsWeb) {
         try {
           bytes = await File(path).readAsBytes();
         } catch (_) {
@@ -676,21 +885,44 @@ class _GenerateMediaPageState extends State<_GenerateMediaPage> {
       return;
     }
 
-    if (path == null || path.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Unable to open selected video. Please try again.'),
-        ),
+    if ((bytes == null || bytes.isEmpty) &&
+        path != null &&
+        path.isNotEmpty &&
+        !kIsWeb) {
+      final stablePath = await _ensureLocalMediaFile(
+        path,
+        preferredName: file.name,
+        fallbackExt: '.mp4',
       );
+      if (stablePath != null) {
+        if (!mounted) return;
+        setState(() {
+          _activeContent.generatedBytes = null;
+          _activeContent.localFilePath = stablePath;
+          _activeContent.generatedResult = null;
+          _activeContent.genState = MediaGenState.ready;
+        });
+        return;
+      }
+    }
+
+    if (bytes != null && bytes.isNotEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _activeContent.generatedBytes = bytes;
+        _activeContent.localFilePath = path;
+        _activeContent.generatedResult = null;
+        _activeContent.genState = MediaGenState.ready;
+      });
       return;
     }
 
-    setState(() {
-      _activeContent.generatedBytes = null;
-      _activeContent.localFilePath = path;
-      _activeContent.generatedResult = path;
-      _activeContent.genState = MediaGenState.ready;
-    });
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Unable to open selected video. Please try again.'),
+      ),
+    );
   }
 
   void _selectSlot(int index) {
@@ -749,6 +981,11 @@ class _GenerateMediaPageState extends State<_GenerateMediaPage> {
     });
   }
 
+  bool _isRemoteMediaUrl(String? value) {
+    final v = value?.trim() ?? '';
+    return v.startsWith('http://') || v.startsWith('https://');
+  }
+
   bool _slotHasViewableMedia(MarketingContent content) {
     if (content.genState != MediaGenState.ready) return false;
     if (content.type == MarketingContentType.pictures) {
@@ -761,13 +998,15 @@ class _GenerateMediaPageState extends State<_GenerateMediaPage> {
       return hasBytes || hasLocalFile;
     }
     if (content.type == MarketingContentType.videos) {
-      final hasRemote = content.generatedResult?.isNotEmpty ?? false;
+      final hasRemote = _isRemoteMediaUrl(content.generatedResult);
+      final hasBytes =
+          content.generatedBytes != null && content.generatedBytes!.isNotEmpty;
       final localPath = content.localFilePath;
       final hasLocalFile = !kIsWeb &&
           localPath != null &&
           localPath.isNotEmpty &&
           File(localPath).existsSync();
-      return hasRemote || hasLocalFile;
+      return hasRemote || hasLocalFile || hasBytes;
     }
     return false;
   }
@@ -869,6 +1108,9 @@ class _GenerateMediaPageState extends State<_GenerateMediaPage> {
     final canGenerate =
         _promptCtrl.text.trim().isNotEmpty &&
         _activeContent.genState != MediaGenState.generating;
+    // Keyboard shrinks the column; the tall prompt bar then crowds the body
+    // field. Hide it while editing so typed text stays visible.
+    final editingBodyText = _isText && _textBodyFocus.hasFocus;
 
     return _MarketingScaffold(
       contentHorizontalPadding: 10,
@@ -913,15 +1155,16 @@ class _GenerateMediaPageState extends State<_GenerateMediaPage> {
               ),
             ),
 
-          _PromptBar(
-            controller: _promptCtrl,
-            hint: _activeContent.promptHint,
-            onAttach: _isText ? null : _pickAndAttachMedia,
-            onGenerate: canGenerate ? _generate : null,
-            generateIcon: Icons.auto_awesome,
-          ),
-
-          const SizedBox(height: 16),
+          if (!editingBodyText) ...[
+            _PromptBar(
+              controller: _promptCtrl,
+              hint: _activeContent.promptHint,
+              onAttach: _isText ? null : _pickAndAttachMedia,
+              onGenerate: canGenerate ? _generate : null,
+              generateIcon: Icons.auto_awesome,
+            ),
+            const SizedBox(height: 16),
+          ],
           _DarkButton(
             label: 'Next',
             compact: true,
@@ -941,6 +1184,7 @@ class _GenerateMediaPageState extends State<_GenerateMediaPage> {
           padding: const EdgeInsets.all(16),
           child: TextField(
             controller: _textBodyCtrl,
+            focusNode: _textBodyFocus,
             maxLines: null,
             expands: true,
             style: GoogleFonts.montserrat(
@@ -1100,17 +1344,24 @@ class _MediaSlotThumbCard extends StatelessWidget {
                   );
           }
         }
-        if (!isPicture && (content.generatedResult?.isNotEmpty ?? false)) {
-          return ColoredBox(
-            color: CustColors.logodeep.withValues(alpha: 0.1),
-            child: Center(
-              child: Icon(
-                Icons.play_circle_fill_rounded,
-                size: 40,
-                color: CustColors.logodeep,
+        if (!isPicture) {
+          final remote = content.generatedResult?.trim() ?? '';
+          final hasRemote =
+              remote.startsWith('http://') || remote.startsWith('https://');
+          final hasLocal = content.localFilePath?.trim().isNotEmpty ?? false;
+          final hasBytes = content.generatedBytes?.isNotEmpty ?? false;
+          if (hasRemote || hasLocal || hasBytes) {
+            return ColoredBox(
+              color: CustColors.logodeep.withValues(alpha: 0.1),
+              child: Center(
+                child: Icon(
+                  Icons.play_circle_fill_rounded,
+                  size: 40,
+                  color: CustColors.logodeep,
+                ),
               ),
-            ),
-          );
+            );
+          }
         }
         return ColoredBox(
           color: CustColors.logodeep.withValues(alpha: 0.1),
@@ -1342,13 +1593,16 @@ class _MediaSlotPreviewDialogState extends State<_MediaSlotPreviewDialog> {
       return hasBytes || hasLocalFile;
     }
     if (content.type == MarketingContentType.videos) {
-      final hasRemote = content.generatedResult?.isNotEmpty ?? false;
+      final remote = content.generatedResult?.trim() ?? '';
+      final hasRemote =
+          remote.startsWith('http://') || remote.startsWith('https://');
       final localPath = content.localFilePath;
       final hasLocalFile = !kIsWeb &&
           localPath != null &&
           localPath.isNotEmpty &&
           File(localPath).existsSync();
-      return hasRemote || hasLocalFile;
+      final hasBytes = content.generatedBytes?.isNotEmpty ?? false;
+      return hasRemote || hasLocalFile || hasBytes;
     }
     return false;
   }
@@ -1817,12 +2071,19 @@ class _ReadyPreview extends StatelessWidget {
       }
     }
 
-    if (content.type == MarketingContentType.videos &&
-        (content.generatedResult?.isNotEmpty ?? false)) {
-      final videoRef = content.localFilePath ?? content.generatedResult!;
+    if (content.type == MarketingContentType.videos) {
+      final remote = content.generatedResult?.trim() ?? '';
+      final hasRemote =
+          remote.startsWith('http://') || remote.startsWith('https://');
+      final localPath = content.localFilePath?.trim() ?? '';
+      final hasLocal = localPath.isNotEmpty;
+      if (!hasRemote && !hasLocal) {
+        return const SizedBox.shrink();
+      }
+      final videoRef = hasLocal ? localPath : remote;
       final caption = (content.prompt?.trim().isNotEmpty ?? false)
           ? content.prompt!
-          : 'Generated video';
+          : (hasRemote ? 'Generated video' : 'Uploaded video');
 
       if (compact) {
         return SingleChildScrollView(
@@ -2432,7 +2693,7 @@ class _SelectOutletPageState extends State<_SelectOutletPage> {
       if (!kIsWeb && localPath != null && localPath.isNotEmpty) {
         try {
           final file = File(localPath);
-          if (await file.exists()) {
+          if (await file.exists() && await file.length() > 0) {
             final url = await _apiService.uploadFile(
               file: file,
               filename: file.uri.pathSegments.isNotEmpty
@@ -2440,7 +2701,26 @@ class _SelectOutletPageState extends State<_SelectOutletPage> {
                   : null,
             );
             mediaUrls.add(url);
+            continue;
           }
+        } catch (_) {
+          // Fall through to bytes upload if available.
+        }
+      }
+
+      final bytes = c.generatedBytes;
+      if (bytes != null && bytes.isNotEmpty) {
+        try {
+          final filename = c.type == MarketingContentType.videos
+              ? 'marketing-video.mp4'
+              : (c.generatedResult?.trim().isNotEmpty == true
+                    ? c.generatedResult!.trim()
+                    : 'marketing-image.jpg');
+          final url = await _apiService.uploadFileBytes(
+            fileBytes: bytes,
+            filename: filename,
+          );
+          mediaUrls.add(url);
         } catch (_) {
           // Skip media that could not be uploaded.
         }

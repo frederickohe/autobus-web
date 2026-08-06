@@ -68,24 +68,36 @@ class ProductFormImageSection extends StatelessWidget {
         const SizedBox(height: 12),
         SizedBox(
           height: thumbSize + 8,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: [
-              for (var i = 0; i < slots.length; i++) ...[
-                if (i > 0) const SizedBox(width: 10),
-                _FormThumb(
-                  slot: slots[i],
-                  index: i,
-                  isCover: i == 0 && !slots[i].isEmpty,
-                  busy: busy,
-                  onTap: () => onSlotTap(i),
-                ),
-              ],
-              if (_filledCount < maxImages) ...[
-                const SizedBox(width: 10),
-                _AddPhotosButton(busy: busy, onTap: onAddImages),
-              ],
-            ],
+          child: Builder(
+            builder: (context) {
+              final filledIndexes = [
+                for (var i = 0; i < slots.length; i++)
+                  if (!slots[i].isEmpty) i,
+              ];
+              return ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                  for (var j = 0; j < filledIndexes.length; j++) ...[
+                    if (j > 0) const SizedBox(width: 10),
+                    _FormThumb(
+                      slot: slots[filledIndexes[j]],
+                      index: filledIndexes[j],
+                      isCover: j == 0,
+                      busy: busy,
+                      onTap: () => onSlotTap(filledIndexes[j]),
+                    ),
+                  ],
+                  if (_filledCount < maxImages) ...[
+                    if (filledIndexes.isNotEmpty) const SizedBox(width: 10),
+                    _AddPhotosButton(
+                      busy: busy,
+                      onTap: onAddImages,
+                      showPlusOnly: filledIndexes.isNotEmpty,
+                    ),
+                  ],
+                ],
+              );
+            },
           ),
         ),
       ],
@@ -183,8 +195,13 @@ class _FormThumb extends StatelessWidget {
 class _AddPhotosButton extends StatelessWidget {
   final bool busy;
   final VoidCallback onTap;
+  final bool showPlusOnly;
 
-  const _AddPhotosButton({required this.busy, required this.onTap});
+  const _AddPhotosButton({
+    required this.busy,
+    required this.onTap,
+    this.showPlusOnly = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -200,26 +217,32 @@ class _AddPhotosButton extends StatelessWidget {
             color: const Color(0xFFA855F7).withValues(alpha: 0.55),
           ),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.photo_library_outlined,
-              color: const Color(0xFFA855F7).withValues(alpha: 0.9),
-              size: 26,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Add photos',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.outfit(
-                color: const Color(0xFFA855F7).withValues(alpha: 0.85),
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
+        child: showPlusOnly
+            ? Icon(
+                Icons.add,
+                color: const Color(0xFFA855F7).withValues(alpha: 0.9),
+                size: 32,
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.photo_library_outlined,
+                    color: const Color(0xFFA855F7).withValues(alpha: 0.9),
+                    size: 26,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Add photos',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.outfit(
+                      color: const Color(0xFFA855F7).withValues(alpha: 0.85),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -289,9 +312,6 @@ Future<void> pickMultipleProductImages(
   setState(() {
     slots.removeWhere((s) => s.isEmpty);
     slots.addAll(newSlots);
-    if (slots.length < maxSlots) {
-      slots.add(ProductStagingSlot());
-    }
   });
 }
 
@@ -303,10 +323,6 @@ void removeProductStagingSlot(
   setState(() {
     if (index < 0 || index >= slots.length) return;
     slots.removeAt(index);
-    if (slots.isEmpty) {
-      slots.add(ProductStagingSlot());
-    } else if (slots.every((s) => !s.isEmpty)) {
-      slots.add(ProductStagingSlot());
-    }
+    slots.removeWhere((s) => s.isEmpty);
   });
 }
