@@ -101,9 +101,17 @@ class AutoChatRepository {
       headers: AppConfig.webhookHeaders(),
     );
     if (res.statusCode != 200) {
+      String detail = '';
+      try {
+        final decoded = jsonDecode(res.body);
+        if (decoded is Map) {
+          detail = (decoded['detail'] ?? decoded['message'] ?? '').toString();
+        }
+      } catch (_) {}
+      final suffix = detail.isNotEmpty ? ': $detail' : ' (${res.statusCode}).';
       return CompanyLookupResult(
         ok: false,
-        message: 'Could not verify business name (${res.statusCode}).',
+        message: 'Could not verify business name$suffix',
       );
     }
 

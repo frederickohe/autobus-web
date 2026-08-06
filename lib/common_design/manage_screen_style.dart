@@ -161,47 +161,39 @@ class ManageScreenHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hideBack = ManageScreenChrome.hideHeaderBack(context);
+    final trailingWidget =
+        trailing ??
+        (creditCategory != null
+            ? CreditAvatar(creditCategory: creditCategory!)
+            : const SizedBox(width: 48, height: 48));
 
     return Padding(
       padding: padding,
       child: SizedBox(
         height: 54,
-        child: Stack(
-          alignment: Alignment.center,
+        child: Row(
           children: [
-            if (!hideBack)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: ManageScreenBackButton(
-                  onPressed: onBackPressed,
+            if (!hideBack) ...[
+              ManageScreenBackButton(
+                onPressed: onBackPressed,
+                onDarkBackground: onDarkBackground,
+              ),
+              const SizedBox(width: 12),
+            ],
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: ManageScreenStyle.headerTitleStyle(
+                  context,
                   onDarkBackground: onDarkBackground,
                 ),
               ),
-            Positioned.fill(
-              child: Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: hideBack ? 0 : 72),
-                  child: Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: ManageScreenStyle.headerTitleStyle(
-                      context,
-                      onDarkBackground: onDarkBackground,
-                    ),
-                  ),
-                ),
-              ),
             ),
-            Align(
-              alignment: Alignment.centerRight,
-              child:
-                  trailing ??
-                  (creditCategory != null
-                      ? CreditAvatar(creditCategory: creditCategory!)
-                      : const SizedBox(width: 48, height: 48)),
-            ),
+            const SizedBox(width: 8),
+            trailingWidget,
           ],
         ),
       ),

@@ -8,11 +8,13 @@ RUN flutter pub get
 COPY . .
 
 # Inject production env at build time (flutter_dotenv bundles .env as an asset)
+# PUBLIC_WEBHOOK_API_KEY must match backend PUBLIC_WEBHOOK_API_KEY (X-Api-Key for public chat).
 ARG BACKEND_URL
 ARG PAYSTACK_PUBLIC_KEY=""
 ARG PAYSTACK_CALLBACK_URL=""
-RUN printf "BACKEND_URL=%s\nPAYSTACK_PUBLIC_KEY=%s\nPAYSTACK_CALLBACK_URL=%s\n" \
-    "$BACKEND_URL" "$PAYSTACK_PUBLIC_KEY" "$PAYSTACK_CALLBACK_URL" > .env
+ARG PUBLIC_WEBHOOK_API_KEY=""
+RUN printf "BACKEND_URL=%s\nPAYSTACK_PUBLIC_KEY=%s\nPAYSTACK_CALLBACK_URL=%s\nPUBLIC_WEBHOOK_API_KEY=%s\n" \
+    "$BACKEND_URL" "$PAYSTACK_PUBLIC_KEY" "$PAYSTACK_CALLBACK_URL" "$PUBLIC_WEBHOOK_API_KEY" > .env
 
 RUN flutter build web --release
 
