@@ -49,6 +49,27 @@ class _ManageChannelsState extends State<ManageChannels> {
         );
       }
       try {
+        final igAccounts = await api.listInstagramAccounts();
+        for (final row in igAccounts) {
+          final username = (row['username'] ?? '').toString().trim();
+          final name = (row['name'] ?? '').toString().trim();
+          final igId = (row['ig_user_id'] ?? row['id'] ?? '').toString();
+          final label = username.isNotEmpty
+              ? '@$username'
+              : (name.isNotEmpty ? name : igId);
+          if (label.isEmpty) continue;
+          inboxes.add(
+            ChatwootInbox(
+              id: igId.hashCode.abs(),
+              name: label,
+              kind: 'instagram',
+            ),
+          );
+        }
+      } catch (_) {
+        // Instagram Business Login accounts are optional for the channel list.
+      }
+      try {
         final smsRows = await api.listSmsSenderIds();
         for (final row in smsRows) {
           final senderId = (row['sender_id'] ?? '').toString().trim();
@@ -156,6 +177,12 @@ class _ManageChannelsState extends State<ManageChannels> {
         context,
         title: 'Link WhatsApp',
         fetchSession: () => api.getWhatsAppConnectSession(),
+      );
+    } else if (channel.apiSlug == 'instagram') {
+      await openEmbeddedPlatformSession(
+        context,
+        title: 'Link Instagram',
+        fetchSession: () => api.getInstagramConnectSession(),
       );
     } else {
       await openEmbeddedPlatformSession(
@@ -284,7 +311,7 @@ class _ManageChannelsState extends State<ManageChannels> {
                                   ),
                                   const SizedBox(height: 12),
                   Text(
-                    'Instagram opens Chatwoot to connect messaging. WhatsApp uses Meta signup. SMS opens your Sender ID page.',
+                    'Instagram uses Meta Business Login. WhatsApp uses Meta signup. SMS opens your Sender ID page.',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.montserrat(
                       color: Colors.white.withValues(alpha: 0.65),

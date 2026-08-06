@@ -1558,6 +1558,54 @@ class ApiService {
     return [];
   }
 
+  /// GET /api/v1/instagram/connect — Instagram Business Login authorize URL.
+  Future<PlatformEmbedSession> getInstagramConnectSession() async {
+    final response = await httpClient.get(
+      Uri.parse('$baseUrl/instagram/connect'),
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data is Map) {
+        final map = Map<String, dynamic>.from(data);
+        final authUrl = (map['authorization_url'] ?? '').toString();
+        if (authUrl.isEmpty) {
+          throw Exception('Instagram connect response missing authorization_url');
+        }
+        return PlatformEmbedSession(
+          authorizationUrl: authUrl,
+          message: map['message']?.toString(),
+        );
+      }
+      throw Exception('Invalid Instagram connect response');
+    }
+    if (response.statusCode == 401) {
+      throw Exception('Session expired');
+    }
+    throw Exception(
+      _httpDetailMessage(response.body) ??
+          'Instagram connect failed (${response.statusCode})',
+    );
+  }
+
+  /// GET /api/v1/instagram/accounts — Instagram Business Login linked accounts.
+  Future<List<Map<String, dynamic>>> listInstagramAccounts() async {
+    final response = await httpClient.get(
+      Uri.parse('$baseUrl/instagram/accounts'),
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data is! List) return [];
+      return data
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+    }
+    if (response.statusCode == 401) {
+      throw Exception('Session expired');
+    }
+    return [];
+  }
+
   /// GET /api/v1/sms-sender-ids — current user's SMS sender ID registrations.
   Future<List<Map<String, dynamic>>> listSmsSenderIds() async {
     final response = await httpClient.get(

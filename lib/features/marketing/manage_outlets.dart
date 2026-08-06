@@ -29,7 +29,38 @@ class _ManageOutletsState extends State<ManageOutlets> {
 
     try {
       final api = context.read<ApiService>();
-      final integrations = await api.listPostizIntegrations();
+      List<PostizIntegration> integrations = [];
+      try {
+        integrations = List<PostizIntegration>.from(
+          await api.listPostizIntegrations(),
+        );
+      } catch (_) {
+        integrations = [];
+      }
+      try {
+        final igAccounts = await api.listInstagramAccounts();
+        for (final row in igAccounts) {
+          final username = (row['username'] ?? '').toString().trim();
+          final name = (row['name'] ?? '').toString().trim();
+          final igId = (row['ig_user_id'] ?? row['id'] ?? '').toString();
+          final label = username.isNotEmpty
+              ? '@$username'
+              : (name.isNotEmpty ? name : igId);
+          if (igId.isEmpty) continue;
+          integrations.add(
+            PostizIntegration(
+              id: 'autobus-ig-$igId',
+              name: label.isNotEmpty ? label : 'Instagram',
+              identifier: 'instagram',
+              picture: (row['profile_picture_url'] ?? '').toString(),
+              disabled: false,
+              profile: username.isNotEmpty ? username : null,
+            ),
+          );
+        }
+      } catch (_) {
+        // Autobus Instagram accounts are optional alongside Postiz.
+      }
       if (!mounted) return;
       final split = OutletCatalog.partition(integrations);
       setState(() {
@@ -50,10 +81,14 @@ class _ManageOutletsState extends State<ManageOutlets> {
 
   Future<void> _linkOutlet(OutletOption outlet) async {
     final api = context.read<ApiService>();
+    final isInstagram = outlet.postizIdentifiers.contains('instagram') ||
+        outlet.postizIdentifiers.contains('instagram-standalone');
     await openEmbeddedPlatformSession(
       context,
       title: 'Link ${outlet.label}',
-      fetchSession: () => api.postizAutoLogin(),
+      fetchSession: () => isInstagram
+          ? api.getInstagramConnectSession()
+          : api.postizAutoLogin(),
     );
 
     if (mounted) {
@@ -174,7 +209,7 @@ class _ManageOutletsState extends State<ManageOutlets> {
                                   ),
                                   const SizedBox(height: 12),
                                   Text(
-                                    'Postiz opens in-app: sign in with your Postiz account, then tap Continue to connect your social channel on the integrations page.',
+                                    'Instagram uses Meta Business Login in-app. Other outlets open Postiz: sign in, then connect the channel on the integrations page.',
                                     textAlign: TextAlign.center,
                                     style: GoogleFonts.montserrat(
                                       color: Colors.white.withValues(alpha: 0.65),
