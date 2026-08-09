@@ -83,12 +83,17 @@ class _ManageOutletsState extends State<ManageOutlets> {
     final api = context.read<ApiService>();
     final isInstagram = outlet.postizIdentifiers.contains('instagram') ||
         outlet.postizIdentifiers.contains('instagram-standalone');
+    final connectSlug = outlet.connectSlug?.trim();
     await openEmbeddedPlatformSession(
       context,
       title: 'Link ${outlet.label}',
-      fetchSession: () => isInstagram
-          ? api.getInstagramConnectSession()
-          : api.postizAutoLogin(),
+      fetchSession: () {
+        if (isInstagram) return api.getInstagramConnectSession();
+        if (connectSlug != null && connectSlug.isNotEmpty) {
+          return api.initiateSocialConnect(connectSlug);
+        }
+        return api.postizAutoLogin();
+      },
     );
 
     if (mounted) {
@@ -209,7 +214,7 @@ class _ManageOutletsState extends State<ManageOutlets> {
                                   ),
                                   const SizedBox(height: 12),
                                   Text(
-                                    'Instagram uses Meta Business Login in-app. Other outlets open Postiz: sign in, then connect the channel on the integrations page.',
+                                    'Instagram uses Meta Business Login. Facebook and other outlets connect through Postiz and open the provider login when available.',
                                     textAlign: TextAlign.center,
                                     style: GoogleFonts.montserrat(
                                       color: Colors.white.withValues(alpha: 0.65),

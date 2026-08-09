@@ -40,6 +40,8 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
   String? _loadError;
   bool _actionBusy = false;
   bool _sending = false;
+  Timer? _livePollTimer;
+  bool _polling = false;
 
   @override
   void initState() {
@@ -49,9 +51,56 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
 
   @override
   void dispose() {
+    _stopLivePolling();
     _messageCtrl.dispose();
     _scrollCtrl.dispose();
     super.dispose();
+  }
+
+  void _startLivePolling() {
+    _stopLivePolling();
+    if (widget.mode != ConversationScreenMode.liveChat) return;
+    _livePollTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      unawaited(_pollLiveSession());
+    });
+  }
+
+  void _stopLivePolling() {
+    _livePollTimer?.cancel();
+    _livePollTimer = null;
+  }
+
+  Future<void> _pollLiveSession() async {
+    if (!mounted || _loading || _sending || _polling || _actionBusy) return;
+    if (widget.mode != ConversationScreenMode.liveChat) return;
+    final sid = _resolvedSessionId;
+    if (sid == null) return;
+
+    _polling = true;
+    try {
+      final api = context.read<ApiService>();
+      final detail = await api.getConversationSession(sid);
+      if (!mounted) return;
+
+      final prevLen = _history.length;
+      final raw = detail['conversation_history'];
+      final nextLen = raw is List ? raw.length : 0;
+
+      setState(() => _detail = detail);
+
+      final active = detail['intervention_active'];
+      final isActive =
+          active is bool ? active : active?.toString().toLowerCase() == 'true';
+      if (!isActive) {
+        _stopLivePolling();
+      } else if (nextLen > prevLen) {
+        _scrollToBottom();
+      }
+    } catch (_) {
+      // Polling is best-effort; ignore transient errors.
+    } finally {
+      _polling = false;
+    }
   }
 
   Future<void> _load() async {
@@ -72,6 +121,14 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
         _loading = false;
       });
       _scrollToBottom();
+      if (widget.mode == ConversationScreenMode.liveChat) {
+        final active = detail['intervention_active'];
+        final isActive =
+            active is bool ? active : active?.toString().toLowerCase() == 'true';
+        if (isActive) {
+          _startLivePolling();
+        }
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -129,6 +186,7 @@ class _ConversationDetailScreenState extends State<ConversationDetailScreen> {
         _detail = updated;
         _actionBusy = false;
       });
+      _stopLivePolling();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Intervention turned off')),
       );

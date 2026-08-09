@@ -39,8 +39,11 @@ class _EmbeddedPlatformWebViewState extends State<EmbeddedPlatformWebView> {
           onPageFinished: (url) async {
             if (!mounted) return;
             setState(() => _loading = false);
-            if (!_loginStepDone && _session.isChatwoot) {
+            if (_loginStepDone) return;
+            if (_session.isChatwoot) {
               await _tryChatwootFormSubmit();
+            } else if (_session.isPostiz) {
+              await _tryPostizApiLogin();
             }
           },
           onWebResourceError: (err) {
@@ -65,6 +68,13 @@ class _EmbeddedPlatformWebViewState extends State<EmbeddedPlatformWebView> {
       return;
     }
 
+    // Direct provider OAuth (e.g. Facebook via Postiz Public API) — skip Postiz UI.
+    if (_session.directOauth) {
+      await _controller.loadRequest(Uri.parse(auth));
+      _loginStepDone = true;
+      return;
+    }
+
     if (_session.isPostiz) {
       final pageUrl = resolveEmbeddedPlatformUrl(
         _session.postizLoginPageUrl!.trim(),
@@ -83,6 +93,64 @@ class _EmbeddedPlatformWebViewState extends State<EmbeddedPlatformWebView> {
 
     await _controller.loadRequest(Uri.parse(auth));
     _loginStepDone = true;
+  }
+
+  Future<void> _tryPostizApiLogin() async {
+    final body = _session.postizLoginBody;
+    if (body == null) {
+      _loginStepDone = true;
+      await _openAuthorizationPage();
+      return;
+    }
+    final email = (body['email'] ?? '').toString();
+    final password = (body['password'] ?? '').toString();
+    final provider = (body['provider'] ?? 'LOCAL').toString();
+    final providerToken = (body['providerToken'] ?? '').toString();
+    if (email.isEmpty || password.isEmpty) {
+      _loginStepDone = true;
+      await _openAuthorizationPage();
+      return;
+    }
+
+    // Kick off login; poll a window flag because async JS promises are not
+    // reliably returned from runJavaScriptReturningResult.
+    final startScript =
+        '''
+window.__postizLoginDone = false;
+window.__postizLoginResult = null;
+fetch('/api/auth/login', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  credentials: 'include',
+  body: JSON.stringify({
+    email: ${jsonEncode(email)},
+    password: ${jsonEncode(password)},
+    provider: ${jsonEncode(provider)},
+    providerToken: ${jsonEncode(providerToken)}
+  })
+}).then(function(res) {
+  window.__postizLoginResult = res.ok ? 'ok' : ('fail:' + res.status);
+}).catch(function() {
+  window.__postizLoginResult = 'error';
+}).finally(function() {
+  window.__postizLoginDone = true;
+});
+''';
+    try {
+      await _controller.runJavaScript(startScript);
+      for (var i = 0; i < 50; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        final done = await _controller.runJavaScriptReturningResult(
+          'window.__postizLoginDone === true',
+        );
+        if (done.toString().contains('true')) break;
+      }
+    } catch (_) {
+      // Fall through to authorization URL even if login script fails.
+    }
+    _loginStepDone = true;
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    await _openAuthorizationPage();
   }
 
   Future<void> _tryChatwootFormSubmit() async {

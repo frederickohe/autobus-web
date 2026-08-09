@@ -1,6 +1,7 @@
 import 'package:autobus/barrel.dart';
 import 'package:autobus/features/chat/channel_catalog.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ManageChannels extends StatefulWidget {
   const ManageChannels({super.key});
@@ -173,11 +174,39 @@ class _ManageChannelsState extends State<ManageChannels> {
 
     final api = context.read<ApiService>();
     if (channel.apiSlug == 'whatsapp') {
-      await openEmbeddedPlatformSession(
-        context,
-        title: 'Link WhatsApp',
-        fetchSession: () => api.getWhatsAppConnectSession(),
-      );
+      // Meta WhatsApp Embedded Signup frequently breaks inside in-app WebViews
+      // ("This link is broken"). Open the system browser instead.
+      final messenger = ScaffoldMessenger.of(context);
+      try {
+        final session = await api.getWhatsAppConnectSession();
+        final uri = Uri.tryParse(session.authorizationUrl.trim());
+        if (uri == null || !uri.hasScheme) {
+          messenger.showSnackBar(
+            const SnackBar(content: Text('Server did not return a valid WhatsApp link.')),
+          );
+        } else {
+          final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+          if (!ok && mounted) {
+            messenger.showSnackBar(
+              const SnackBar(content: Text('Could not open the Meta signup page.')),
+            );
+          } else if (mounted) {
+            messenger.showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Finish WhatsApp signup in your browser, then return here and pull to refresh.',
+                ),
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          messenger.showSnackBar(
+            SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+          );
+        }
+      }
     } else if (channel.apiSlug == 'instagram') {
       await openEmbeddedPlatformSession(
         context,
@@ -311,7 +340,7 @@ class _ManageChannelsState extends State<ManageChannels> {
                                   ),
                                   const SizedBox(height: 12),
                   Text(
-                    'Instagram uses Meta Business Login. WhatsApp uses Meta signup. SMS opens your Sender ID page.',
+                    'Instagram uses Meta Business Login. WhatsApp opens Meta signup in your browser (in-app WebView often breaks). SMS opens your Sender ID page.',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.montserrat(
                       color: Colors.white.withValues(alpha: 0.65),

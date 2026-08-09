@@ -7,6 +7,10 @@ class PlatformEmbedSession {
   final String? postizLoginPageUrl;
   final Map<String, dynamic>? postizLoginBody;
 
+  /// When true, [authorizationUrl] is a direct provider OAuth URL (e.g. Facebook).
+  /// Skip the Postiz login UI and open the provider immediately.
+  final bool directOauth;
+
   /// Chatwoot: load this page and submit `chatwoot_login.body` (`login_page_url`).
   final String? chatwootLoginPageUrl;
   final Map<String, dynamic>? chatwootLoginBody;
@@ -16,12 +20,15 @@ class PlatformEmbedSession {
     this.message,
     this.postizLoginPageUrl,
     this.postizLoginBody,
+    this.directOauth = false,
     this.chatwootLoginPageUrl,
     this.chatwootLoginBody,
   });
 
   bool get isPostiz =>
-      postizLoginPageUrl != null && postizLoginPageUrl!.isNotEmpty;
+      !directOauth &&
+      postizLoginPageUrl != null &&
+      postizLoginPageUrl!.isNotEmpty;
 
   bool get isChatwoot =>
       chatwootLoginPageUrl != null &&
@@ -45,6 +52,7 @@ class PlatformEmbedSession {
     required String loginKey,
   }) {
     final authUrl = (json['authorization_url'] ?? '').toString();
+    final directOauth = json['direct_oauth'] == true;
     final loginRaw = json[loginKey];
     Map<String, dynamic>? loginMap;
     if (loginRaw is Map) {
@@ -54,11 +62,20 @@ class PlatformEmbedSession {
     if (loginKey == 'postiz_login') {
       final pageUrl = (loginMap?['login_page_url'] ?? '').toString();
       final body = loginMap?['body'];
+      // Direct provider OAuth (Facebook, etc.): open Meta/provider URL only.
+      if (directOauth) {
+        return PlatformEmbedSession(
+          authorizationUrl: authUrl,
+          message: json['message']?.toString(),
+          directOauth: true,
+        );
+      }
       return PlatformEmbedSession(
         authorizationUrl: authUrl,
         message: json['message']?.toString(),
         postizLoginPageUrl: pageUrl.isEmpty ? null : pageUrl,
         postizLoginBody: body is Map ? Map<String, dynamic>.from(body) : null,
+        directOauth: false,
       );
     }
 

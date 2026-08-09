@@ -9,11 +9,16 @@ class OutletOption {
   final Color iconColor;
   final Set<String> postizIdentifiers;
 
+  /// Postiz / Autobus connect path slug (`facebook`, `whatsapp`, …).
+  /// Null when the outlet uses a dedicated Autobus flow (e.g. Instagram).
+  final String? connectSlug;
+
   const OutletOption({
     required this.label,
     required this.icon,
     required this.iconColor,
     this.postizIdentifiers = const {},
+    this.connectSlug,
   });
 
   bool matchesIntegration(PostizIntegration integration) {
@@ -47,22 +52,18 @@ class OutletCatalog {
 
   static const List<OutletOption> all = [
     OutletOption(
-      label: 'LinkedIn',
-      icon: FontAwesomeIcons.linkedinIn,
-      iconColor: Color(0xFF0A66C2),
-      postizIdentifiers: {'linkedin', 'linkedin-page'},
-    ),
-    OutletOption(
       label: 'Facebook',
       icon: FontAwesomeIcons.facebookF,
       iconColor: Color(0xFF1877F2),
       postizIdentifiers: {'facebook'},
+      connectSlug: 'facebook',
     ),
     OutletOption(
       label: 'WhatsApp Status',
       icon: FontAwesomeIcons.whatsapp,
       iconColor: Color(0xFF25D366),
       postizIdentifiers: {'whatsapp'},
+      connectSlug: 'whatsapp',
     ),
     OutletOption(
       label: 'Instagram',
@@ -71,16 +72,18 @@ class OutletCatalog {
       postizIdentifiers: {'instagram', 'instagram-standalone'},
     ),
     OutletOption(
-      label: 'X',
-      icon: FontAwesomeIcons.xTwitter,
-      iconColor: Colors.white,
-      postizIdentifiers: {'x'},
-    ),
-    OutletOption(
       label: 'YouTube',
       icon: FontAwesomeIcons.youtube,
       iconColor: Color(0xFFFF0000),
       postizIdentifiers: {'youtube'},
+      connectSlug: 'youtube',
+    ),
+    OutletOption(
+      label: 'TikTok',
+      icon: FontAwesomeIcons.tiktok,
+      iconColor: Color(0xFF69C9D0),
+      postizIdentifiers: {'tiktok'},
+      connectSlug: 'tiktok',
     ),
   ];
 
