@@ -1,5 +1,6 @@
 import 'package:autobus/features/legal/account_deletion_page.dart';
 import 'package:autobus/features/legal/privacy_policy_page.dart';
+import 'package:autobus/features/legal/terms_of_service_page.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -17,6 +18,8 @@ bool isLegalWebPath(String path) {
   switch (normalizeWebPath(path)) {
     case '/privacy':
     case '/privacy-policy':
+    case '/terms':
+    case '/terms-of-service':
     case '/delete-account':
     case '/account-deletion':
       return true;
@@ -30,6 +33,9 @@ Widget? legalPageForWebPath(String path) {
     case '/privacy':
     case '/privacy-policy':
       return const PrivacyPolicyPage();
+    case '/terms':
+    case '/terms-of-service':
+      return const TermsOfServicePage();
     case '/delete-account':
     case '/account-deletion':
       return const AccountDeletionPage();

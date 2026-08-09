@@ -1,5 +1,8 @@
 import 'package:autobus/barrel.dart';
 import 'package:autobus/features/legal/privacy_policy_page.dart';
+import 'package:autobus/features/legal/terms_of_service_page.dart';
+import 'package:autobus/features/web/legal_web_paths.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class LogorSign extends StatelessWidget {
   const LogorSign({super.key});
@@ -188,7 +191,17 @@ class _BottomPanel extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   GestureDetector(
-                    onTap: () {},
+                    onTap: () {
+                      if (kIsWeb) {
+                        openLegalWebPath('/terms');
+                        return;
+                      }
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const TermsOfServicePage(),
+                        ),
+                      );
+                    },
                     child: Text(
                       'Terms and Conditions',
                       style: tStyle(size: 12),
@@ -197,6 +210,10 @@ class _BottomPanel extends StatelessWidget {
                   SizedBox(height: 8 * s),
                   GestureDetector(
                     onTap: () {
+                      if (kIsWeb) {
+                        openLegalWebPath('/privacy');
+                        return;
+                      }
                       Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (_) => const PrivacyPolicyPage(),

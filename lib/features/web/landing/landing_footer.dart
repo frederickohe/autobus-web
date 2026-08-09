@@ -1,6 +1,7 @@
 import 'package:autobus/barrel.dart';
 import 'package:autobus/features/legal/account_deletion_page.dart';
 import 'package:autobus/features/legal/privacy_policy_page.dart';
+import 'package:autobus/features/legal/terms_of_service_page.dart';
 import 'package:autobus/features/web/legal_web_paths.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
@@ -28,6 +29,16 @@ class LandingFooter extends StatelessWidget {
     );
   }
 
+  void _openTermsOfService(BuildContext context) {
+    if (kIsWeb) {
+      openLegalWebPath('/terms');
+      return;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const TermsOfServicePage()),
+    );
+  }
+
   void _openAccountDeletion(BuildContext context) {
     if (kIsWeb) {
       openLegalWebPath('/delete-account');
@@ -52,17 +63,21 @@ class LandingFooter extends StatelessWidget {
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1200),
-          child: isNarrow ? _NarrowContent(
-            year: year,
-            onPrivacyTap: () => _openPrivacyPolicy(context),
-            onAccountDeletionTap: () => _openAccountDeletion(context),
-            onGetStarted: onGetStarted,
-          ) : _WideContent(
-            year: year,
-            onPrivacyTap: () => _openPrivacyPolicy(context),
-            onAccountDeletionTap: () => _openAccountDeletion(context),
-            onGetStarted: onGetStarted,
-          ),
+          child: isNarrow
+              ? _NarrowContent(
+                  year: year,
+                  onPrivacyTap: () => _openPrivacyPolicy(context),
+                  onTermsTap: () => _openTermsOfService(context),
+                  onAccountDeletionTap: () => _openAccountDeletion(context),
+                  onGetStarted: onGetStarted,
+                )
+              : _WideContent(
+                  year: year,
+                  onPrivacyTap: () => _openPrivacyPolicy(context),
+                  onTermsTap: () => _openTermsOfService(context),
+                  onAccountDeletionTap: () => _openAccountDeletion(context),
+                  onGetStarted: onGetStarted,
+                ),
         ),
       ),
     );
@@ -73,12 +88,14 @@ class _WideContent extends StatelessWidget {
   const _WideContent({
     required this.year,
     required this.onPrivacyTap,
+    required this.onTermsTap,
     required this.onAccountDeletionTap,
     this.onGetStarted,
   });
 
   final int year;
   final VoidCallback onPrivacyTap;
+  final VoidCallback onTermsTap;
   final VoidCallback onAccountDeletionTap;
   final VoidCallback? onGetStarted;
 
@@ -141,10 +158,13 @@ class _WideContent extends StatelessWidget {
                     onTap: onPrivacyTap,
                   ),
                   _FooterLink(
+                    label: 'Terms & Conditions',
+                    onTap: onTermsTap,
+                  ),
+                  _FooterLink(
                     label: 'Account Deletion',
                     onTap: onAccountDeletionTap,
                   ),
-                  const _FooterLink(label: 'Terms & Conditions'),
                 ],
               ),
             ),
@@ -196,12 +216,14 @@ class _NarrowContent extends StatelessWidget {
   const _NarrowContent({
     required this.year,
     required this.onPrivacyTap,
+    required this.onTermsTap,
     required this.onAccountDeletionTap,
     this.onGetStarted,
   });
 
   final int year;
   final VoidCallback onPrivacyTap;
+  final VoidCallback onTermsTap;
   final VoidCallback onAccountDeletionTap;
   final VoidCallback? onGetStarted;
 
@@ -239,11 +261,11 @@ class _NarrowContent extends StatelessWidget {
           title: 'Legal',
           links: [
             _FooterLink(label: 'Privacy Policy', onTap: onPrivacyTap),
+            _FooterLink(label: 'Terms & Conditions', onTap: onTermsTap),
             _FooterLink(
               label: 'Account Deletion',
               onTap: onAccountDeletionTap,
             ),
-            const _FooterLink(label: 'Terms & Conditions'),
           ],
         ),
         const SizedBox(height: 24),
@@ -292,10 +314,12 @@ class _FooterLinkGroup extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 14),
-        ...links.map((link) => Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: link,
-        )),
+        ...links.map(
+          (link) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: link,
+          ),
+        ),
       ],
     );
   }
@@ -323,7 +347,10 @@ class _FooterLink extends StatelessWidget {
     if (onTap != null) {
       return InkWell(
         onTap: onTap,
-        child: Text(label, style: style.copyWith(decoration: TextDecoration.underline)),
+        child: Text(
+          label,
+          style: style.copyWith(decoration: TextDecoration.underline),
+        ),
       );
     }
 
