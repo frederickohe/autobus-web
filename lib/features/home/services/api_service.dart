@@ -1429,6 +1429,80 @@ class ApiService {
     );
   }
 
+  /// DELETE /api/v1/social/postiz/integrations/{id} — unlink a Postiz channel.
+  Future<void> deletePostizIntegration(String integrationId) async {
+    final id = integrationId.trim();
+    if (id.isEmpty) {
+      throw Exception('Missing integration id');
+    }
+    final response = await httpClient.delete(
+      Uri.parse(
+        '$baseUrl/social/postiz/integrations/${Uri.encodeComponent(id)}',
+      ),
+    );
+    if (response.statusCode == 200 || response.statusCode == 204) {
+      return;
+    }
+    if (response.statusCode == 401) {
+      throw Exception('Session expired');
+    }
+    if (response.statusCode == 404) {
+      return;
+    }
+    throw Exception(
+      _httpDetailMessage(response.body) ??
+          'Could not unlink outlet (${response.statusCode})',
+    );
+  }
+
+  /// DELETE /api/v1/instagram/accounts/{id} — unlink Autobus Instagram account.
+  Future<void> deleteInstagramAccount(String accountId) async {
+    final id = accountId.trim();
+    if (id.isEmpty) {
+      throw Exception('Missing Instagram account id');
+    }
+    final response = await httpClient.delete(
+      Uri.parse('$baseUrl/instagram/accounts/${Uri.encodeComponent(id)}'),
+    );
+    if (response.statusCode == 200 || response.statusCode == 204) {
+      return;
+    }
+    if (response.statusCode == 401) {
+      throw Exception('Session expired');
+    }
+    if (response.statusCode == 404) {
+      return;
+    }
+    throw Exception(
+      _httpDetailMessage(response.body) ??
+          'Could not unlink Instagram (${response.statusCode})',
+    );
+  }
+
+  /// DELETE /api/v1/whatsapp/accounts/{id} — unlink Autobus WhatsApp account.
+  Future<void> deleteWhatsAppAccount(String accountId) async {
+    final id = accountId.trim();
+    if (id.isEmpty) {
+      throw Exception('Missing WhatsApp account id');
+    }
+    final response = await httpClient.delete(
+      Uri.parse('$baseUrl/whatsapp/accounts/${Uri.encodeComponent(id)}'),
+    );
+    if (response.statusCode == 200 || response.statusCode == 204) {
+      return;
+    }
+    if (response.statusCode == 401) {
+      throw Exception('Session expired');
+    }
+    if (response.statusCode == 404) {
+      return;
+    }
+    throw Exception(
+      _httpDetailMessage(response.body) ??
+          'Could not unlink WhatsApp (${response.statusCode})',
+    );
+  }
+
   /// POST /api/v1/social/postiz/auto-login — Postiz LOCAL login + integrations URL.
   Future<PlatformEmbedSession> postizAutoLogin() async {
     final response = await httpClient.post(
@@ -1497,29 +1571,39 @@ class ApiService {
     );
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
+      Map<String, dynamic>? map;
       if (data is Map<String, dynamic>) {
-        final provider = (data['provider'] ?? '').toString().toUpperCase();
-        if (provider == 'POSTIZ') {
-          return PlatformEmbedSession.fromSocialConnect(data);
+        map = data;
+      } else if (data is Map) {
+        map = Map<String, dynamic>.from(data);
+      }
+      if (map != null) {
+        final provider = (map['provider'] ?? '').toString().toUpperCase();
+        final authUrl = (map['authorization_url'] ?? map['auth_url'] ?? '')
+            .toString()
+            .trim();
+        if (authUrl.toLowerCase().contains('chatwoot')) {
+          throw Exception(
+            'Server returned a Chatwoot URL for $slug. '
+            'Check POSTIZ_PUBLIC_URL on the API (expected Postiz, not Chatwoot).',
+          );
         }
-        final authUrl = (data['authorization_url'] ?? data['auth_url'] ?? '')
-            .toString();
+        if (provider == 'POSTIZ') {
+          final session = PlatformEmbedSession.fromSocialConnect(map);
+          if (!session.directOauth) {
+            throw Exception(
+              (map['message'] ?? '').toString().trim().isNotEmpty
+                  ? map['message'].toString()
+                  : 'Could not open $slug provider login. '
+                      'Provider OAuth is not configured on Postiz.',
+            );
+          }
+          return session;
+        }
         if (authUrl.isNotEmpty) {
           return PlatformEmbedSession(authorizationUrl: authUrl);
         }
         throw Exception('Unsupported social connect response for $slug');
-      }
-      if (data is Map) {
-        final map = Map<String, dynamic>.from(data);
-        final provider = (map['provider'] ?? '').toString().toUpperCase();
-        if (provider == 'POSTIZ') {
-          return PlatformEmbedSession.fromSocialConnect(map);
-        }
-        final authUrl = (map['authorization_url'] ?? map['auth_url'] ?? '')
-            .toString();
-        if (authUrl.isNotEmpty) {
-          return PlatformEmbedSession(authorizationUrl: authUrl);
-        }
       }
       throw Exception('Invalid social connect response');
     }

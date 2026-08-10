@@ -11,6 +11,7 @@ class ManageOutlets extends StatefulWidget {
 
 class _ManageOutletsState extends State<ManageOutlets> {
   var _loading = true;
+  var _busy = false;
   String? _loadError;
   List<LinkedOutlet> _linked = [];
   List<OutletOption> _unlinked = OutletCatalog.all;
@@ -42,14 +43,17 @@ class _ManageOutletsState extends State<ManageOutlets> {
         for (final row in igAccounts) {
           final username = (row['username'] ?? '').toString().trim();
           final name = (row['name'] ?? '').toString().trim();
-          final igId = (row['ig_user_id'] ?? row['id'] ?? '').toString();
+          final dbId = (row['id'] ?? '').toString().trim();
+          final igId = (row['ig_user_id'] ?? dbId).toString();
           final label = username.isNotEmpty
               ? '@$username'
               : (name.isNotEmpty ? name : igId);
-          if (igId.isEmpty) continue;
+          // Prefer Autobus DB id so DELETE /instagram/accounts/{id} works.
+          final unlinkId = dbId.isNotEmpty ? dbId : igId;
+          if (unlinkId.isEmpty) continue;
           integrations.add(
             PostizIntegration(
-              id: 'autobus-ig-$igId',
+              id: 'autobus-ig-$unlinkId',
               name: label.isNotEmpty ? label : 'Instagram',
               identifier: 'instagram',
               picture: (row['profile_picture_url'] ?? '').toString(),
@@ -101,6 +105,165 @@ class _ManageOutletsState extends State<ManageOutlets> {
     }
   }
 
+  Future<void> _confirmUnlink(LinkedOutlet item) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1A1333),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: Color(0xFF3F1163)),
+          ),
+          title: Text(
+            'Unlink ${item.outlet.label}?',
+            style: GoogleFonts.montserrat(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 18,
+            ),
+          ),
+          content: Text(
+            item.integrations.length == 1
+                ? 'This removes ${item.subtitle} from Autobus. You can link it again later.'
+                : 'This removes all ${item.integrations.length} linked ${item.outlet.label} accounts. You can link again later.',
+            style: GoogleFonts.montserrat(
+              color: Colors.white.withValues(alpha: 0.75),
+              fontSize: 14,
+              height: 1.45,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(
+                'Cancel',
+                style: GoogleFonts.montserrat(
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(
+                'Unlink',
+                style: GoogleFonts.montserrat(
+                  color: const Color(0xFFEF4444),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed == true && mounted) {
+      await _unlinkOutlet(item);
+    }
+  }
+
+  Future<void> _unlinkOutlet(LinkedOutlet item) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final api = context.read<ApiService>();
+    setState(() => _busy = true);
+    try {
+      for (final integration in item.integrations) {
+        final id = integration.id.trim();
+        if (id.startsWith('autobus-ig-')) {
+          await api.deleteInstagramAccount(id.substring('autobus-ig-'.length));
+        } else {
+          await api.deletePostizIntegration(id);
+        }
+      }
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text('${item.outlet.label} unlinked')),
+      );
+      await _refreshIntegrations();
+    } catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceFirst('Exception: ', '')),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _onLinkedTap(LinkedOutlet item) async {
+    if (_busy) return;
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: const Color(0xFF1A1333),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        side: BorderSide(color: Color(0xFF3F1163)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  item.outlet.label,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.montserrat(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (item.subtitle.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    item.subtitle,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.montserrat(
+                      color: Colors.white54,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(Icons.link, color: Colors.white70),
+                  title: Text(
+                    'Link another account',
+                    style: GoogleFonts.montserrat(color: Colors.white),
+                  ),
+                  onTap: () => Navigator.of(ctx).pop('link'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.link_off, color: Color(0xFFEF4444)),
+                  title: Text(
+                    'Unlink',
+                    style: GoogleFonts.montserrat(
+                      color: const Color(0xFFEF4444),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onTap: () => Navigator.of(ctx).pop('unlink'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (!mounted || action == null) return;
+    if (action == 'link') {
+      await _linkOutlet(item.outlet);
+    } else if (action == 'unlink') {
+      await _confirmUnlink(item);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -129,7 +292,7 @@ class _ManageOutletsState extends State<ManageOutlets> {
                       ),
                       if (!_loading)
                         IconButton(
-                          onPressed: _refreshIntegrations,
+                          onPressed: _busy ? null : _refreshIntegrations,
                           icon: const Icon(Icons.refresh, color: Colors.white70),
                           tooltip: 'Refresh',
                         ),
@@ -168,6 +331,16 @@ class _ManageOutletsState extends State<ManageOutlets> {
                                       letterSpacing: -0.3,
                                     ),
                                   ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Tap a linked outlet to unlink or add another account.',
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.montserrat(
+                                      color: Colors.white.withValues(alpha: 0.55),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w300,
+                                    ),
+                                  ),
                                   const SizedBox(height: 20),
                                   if (_linked.isEmpty)
                                     Padding(
@@ -197,7 +370,7 @@ class _ManageOutletsState extends State<ManageOutlets> {
                                             icon: FaIcon(item.outlet.icon),
                                             iconColor: item.outlet.iconColor,
                                             isLinked: true,
-                                            onTap: () => _linkOutlet(item.outlet),
+                                            onTap: () => _onLinkedTap(item),
                                           ),
                                       ],
                                     ),
@@ -214,7 +387,7 @@ class _ManageOutletsState extends State<ManageOutlets> {
                                   ),
                                   const SizedBox(height: 12),
                                   Text(
-                                    'Instagram uses Meta Business Login. Facebook and other outlets connect through Postiz and open the provider login when available.',
+                                    'Instagram uses Meta Business Login. Facebook, TikTok, YouTube, and WhatsApp Status open the provider login when Postiz OAuth is configured.',
                                     textAlign: TextAlign.center,
                                     style: GoogleFonts.montserrat(
                                       color: Colors.white.withValues(alpha: 0.65),
@@ -248,7 +421,9 @@ class _ManageOutletsState extends State<ManageOutlets> {
                                             label: outlet.label,
                                             icon: FaIcon(outlet.icon),
                                             iconColor: outlet.iconColor,
-                                            onTap: () => _linkOutlet(outlet),
+                                            onTap: _busy
+                                                ? () {}
+                                                : () => _linkOutlet(outlet),
                                           ),
                                       ],
                                     ),
@@ -262,6 +437,11 @@ class _ManageOutletsState extends State<ManageOutlets> {
               ),
             ),
           ),
+          if (_busy)
+            const ColoredBox(
+              color: Color(0x66000000),
+              child: Center(child: AutobusLoadingIndicator(size: 32)),
+            ),
         ],
       ),
     );
