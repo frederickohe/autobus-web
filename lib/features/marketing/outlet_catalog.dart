@@ -9,8 +9,7 @@ class OutletOption {
   final Color iconColor;
   final Set<String> postizIdentifiers;
 
-  /// Postiz / Autobus connect path slug (`facebook`, `whatsapp`, …).
-  /// Null when the outlet uses a dedicated Autobus flow (e.g. Instagram).
+  /// Postiz connect path slug (`facebook`, `instagram`, `whatsapp`, …).
   final String? connectSlug;
 
   const OutletOption({
@@ -70,6 +69,7 @@ class OutletCatalog {
       icon: FontAwesomeIcons.instagram,
       iconColor: Color(0xFFDD2A7B),
       postizIdentifiers: {'instagram', 'instagram-standalone'},
+      connectSlug: 'instagram', // Autobus Business Login (inbox + posting)
     ),
     OutletOption(
       label: 'YouTube',

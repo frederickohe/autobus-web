@@ -85,14 +85,16 @@ class _ManageOutletsState extends State<ManageOutlets> {
 
   Future<void> _linkOutlet(OutletOption outlet) async {
     final api = context.read<ApiService>();
-    final isInstagram = outlet.postizIdentifiers.contains('instagram') ||
-        outlet.postizIdentifiers.contains('instagram-standalone');
     final connectSlug = outlet.connectSlug?.trim();
-    await openEmbeddedPlatformSession(
+    // Meta / TikTok / Google block in-app WebViews; use the device browser
+    // the same way Chatwoot WhatsApp Embedded Signup does.
+    await openPlatformConnectInBrowser(
       context,
-      title: 'Link ${outlet.label}',
+      label: outlet.label,
       fetchSession: () {
-        if (isInstagram) return api.getInstagramConnectSession();
+        if (connectSlug == 'instagram') {
+          return api.getInstagramConnectSession();
+        }
         if (connectSlug != null && connectSlug.isNotEmpty) {
           return api.initiateSocialConnect(connectSlug);
         }
@@ -387,7 +389,7 @@ class _ManageOutletsState extends State<ManageOutlets> {
                                   ),
                                   const SizedBox(height: 12),
                                   Text(
-                                    'Instagram uses Meta Business Login. Facebook, TikTok, YouTube, and WhatsApp Status open the provider login when Postiz OAuth is configured.',
+                                    'Instagram uses Business Login for inbox and posting. Facebook, TikTok, YouTube, and WhatsApp open in your device browser. Finish there, then return here and pull to refresh.',
                                     textAlign: TextAlign.center,
                                     style: GoogleFonts.montserrat(
                                       color: Colors.white.withValues(alpha: 0.65),

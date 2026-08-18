@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:autobus/barrel.dart';
 import 'package:autobus/features/marketing/marketing_media_download.dart';
+import 'package:autobus/features/marketing/platform_post_details.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
@@ -14,6 +15,7 @@ const _kHeaderBorder = Color(0xFFA92FEB);
 const _kNextButtonPurple = Color(0xFF2A1447);
 const _kPurple = Color(0xFF6C63FF);
 const _kRed = Color(0xFFE63946);
+const _kAutobusIgPrefix = 'autobus-ig-';
 
 enum MarketingContentType { pictures, videos, text }
 
@@ -69,8 +71,17 @@ class DigitalMarketingCampaign {
   DateTime? scheduledDate;
   bool postRightAway = false;
   final Set<String> selectedOutlets = {};
+  final Map<String, PlatformPostDetails> outletDetails = {};
 
   DigitalMarketingCampaign(this.contents);
+
+  String get campaignCaption {
+    return contents
+        .where((c) => c.type == MarketingContentType.text)
+        .map((c) => c.manualText ?? c.generatedResult ?? '')
+        .where((s) => s.isNotEmpty)
+        .join('\n\n');
+  }
 }
 
 class _MarketingScaffold extends StatelessWidget {
@@ -2491,9 +2502,37 @@ class _SelectOutletPageState extends State<_SelectOutletPage> {
     List<PostizIntegration> postiz = [];
     List<Map<String, dynamic>> blotato = [];
     try {
-      postiz = await _apiService.listPostizIntegrations();
+      postiz = List<PostizIntegration>.from(
+        await _apiService.listPostizIntegrations(),
+      );
     } catch (_) {
       // Postiz-only flow: do not fail the whole screen if this call errors.
+    }
+    try {
+      final igAccounts = await _apiService.listInstagramAccounts();
+      for (final row in igAccounts) {
+        final username = (row['username'] ?? '').toString().trim();
+        final name = (row['name'] ?? '').toString().trim();
+        final dbId = (row['id'] ?? '').toString().trim();
+        final igId = (row['ig_user_id'] ?? dbId).toString();
+        final label = username.isNotEmpty
+            ? '@$username'
+            : (name.isNotEmpty ? name : igId);
+        final unlinkId = dbId.isNotEmpty ? dbId : igId;
+        if (unlinkId.isEmpty) continue;
+        postiz.add(
+          PostizIntegration(
+            id: '$_kAutobusIgPrefix$unlinkId',
+            name: label.isNotEmpty ? label : 'Instagram',
+            identifier: 'instagram',
+            picture: (row['profile_picture_url'] ?? '').toString(),
+            disabled: false,
+            profile: username.isNotEmpty ? username : null,
+          ),
+        );
+      }
+    } catch (_) {
+      // Autobus Instagram accounts are optional alongside Postiz.
     }
     try {
       blotato = await _apiService.getSocialAccounts();
@@ -2502,7 +2541,7 @@ class _SelectOutletPageState extends State<_SelectOutletPage> {
     }
     if (mounted) {
       setState(() {
-        _postizIntegrations = postiz;
+        _postizIntegrations = postiz.where((p) => p.isActive).toList();
         _blotatoAccounts = blotato;
         _loadingAccounts = false;
       });
@@ -2660,8 +2699,497 @@ class _SelectOutletPageState extends State<_SelectOutletPage> {
           const SizedBox(height: 16),
 
           _DarkButton(
-            label: 'Publish',
-            onTap: widget.campaign.selectedOutlets.isNotEmpty ? _publish : null,
+            label: 'Next',
+            onTap: widget.campaign.selectedOutlets.isNotEmpty
+                ? _goToPostDetails
+                : null,
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  void _goToPostDetails() {
+    if (widget.campaign.selectedOutlets.isEmpty) return;
+    final caption = widget.campaign.campaignCaption;
+    for (final id in widget.campaign.selectedOutlets) {
+      widget.campaign.outletDetails.putIfAbsent(
+        id,
+        () => PlatformPostDetails.fromCampaignCaption(caption),
+      );
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => _PostDetailsPage(
+          campaign: widget.campaign,
+          postizIntegrations: _postizIntegrations,
+          blotatoAccounts: _blotatoAccounts,
+          usePostiz: _usePostiz,
+          useBlotato: _useBlotato,
+        ),
+      ),
+    );
+  }
+}
+
+class _PostDetailsPage extends StatefulWidget {
+  final DigitalMarketingCampaign campaign;
+  final List<PostizIntegration> postizIntegrations;
+  final List<Map<String, dynamic>> blotatoAccounts;
+  final bool usePostiz;
+  final bool useBlotato;
+
+  const _PostDetailsPage({
+    required this.campaign,
+    required this.postizIntegrations,
+    required this.blotatoAccounts,
+    required this.usePostiz,
+    required this.useBlotato,
+  });
+
+  @override
+  State<_PostDetailsPage> createState() => _PostDetailsPageState();
+}
+
+class _PostDetailsPageState extends State<_PostDetailsPage> {
+  final ApiService _apiService = ApiService(
+    httpClient: SessionAwareHttpClient(tokenService: TokenService()),
+  );
+
+  bool _publishing = false;
+  final Map<String, bool> _expanded = {};
+
+  List<PostizIntegration> get _selectedPostiz {
+    final ids = widget.campaign.selectedOutlets;
+    return widget.postizIntegrations.where((p) => ids.contains(p.id)).toList();
+  }
+
+  List<Map<String, dynamic>> get _selectedBlotato {
+    final ids = widget.campaign.selectedOutlets;
+    return widget.blotatoAccounts
+        .where((a) => ids.contains((a['id'] ?? '').toString()))
+        .toList();
+  }
+
+  OutletOption? _outletFor(PostizIntegration p) {
+    for (final o in OutletCatalog.all) {
+      if (o.matchesIntegration(p)) return o;
+    }
+    return null;
+  }
+
+  PlatformPostDetails _detailsFor(String id) {
+    return widget.campaign.outletDetails.putIfAbsent(
+      id,
+      () => PlatformPostDetails.fromCampaignCaption(
+        widget.campaign.campaignCaption,
+      ),
+    );
+  }
+
+  InputDecoration _fieldDecoration(String label, {String? hint}) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      labelStyle: GoogleFonts.montserrat(fontSize: 12, color: Colors.black54),
+      hintStyle: GoogleFonts.montserrat(fontSize: 12, color: Colors.black38),
+      filled: true,
+      fillColor: const Color(0xFFF7F5FB),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFE8E0F0)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFE8E0F0)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: _kHeaderPurple, width: 1.4),
+      ),
+    );
+  }
+
+  Widget _captionField(PlatformPostDetails d) {
+    return TextFormField(
+      initialValue: d.caption,
+      minLines: 3,
+      maxLines: 6,
+      style: GoogleFonts.montserrat(fontSize: 13, height: 1.4),
+      decoration: _fieldDecoration(
+        'Caption',
+        hint: 'Post caption / description',
+      ),
+      onChanged: (v) => d.caption = v,
+    );
+  }
+
+  Widget _youtubeFields(PlatformPostDetails d) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextFormField(
+          initialValue: d.youtubeTitle,
+          style: GoogleFonts.montserrat(fontSize: 13),
+          decoration: _fieldDecoration('Title', hint: '2–100 characters'),
+          onChanged: (v) => d.youtubeTitle = v,
+        ),
+        const SizedBox(height: 10),
+        _captionField(d),
+        const SizedBox(height: 10),
+        DropdownButtonFormField<String>(
+          value: d.youtubeVisibility,
+          decoration: _fieldDecoration('Visibility'),
+          style: GoogleFonts.montserrat(fontSize: 13, color: Colors.black87),
+          items: const [
+            DropdownMenuItem(value: 'public', child: Text('Public')),
+            DropdownMenuItem(value: 'unlisted', child: Text('Unlisted')),
+            DropdownMenuItem(value: 'private', child: Text('Private')),
+          ],
+          onChanged: (v) {
+            if (v != null) setState(() => d.youtubeVisibility = v);
+          },
+        ),
+        const SizedBox(height: 10),
+        TextFormField(
+          initialValue: d.youtubeTagsCsv,
+          style: GoogleFonts.montserrat(fontSize: 13),
+          decoration: _fieldDecoration(
+            'Tags',
+            hint: 'Comma-separated, e.g. marketing, tips',
+          ),
+          onChanged: (v) => d.youtubeTagsCsv = v,
+        ),
+        const SizedBox(height: 10),
+        DropdownButtonFormField<String>(
+          value: d.madeForKids,
+          decoration: _fieldDecoration('Made for kids'),
+          style: GoogleFonts.montserrat(fontSize: 13, color: Colors.black87),
+          items: const [
+            DropdownMenuItem(value: 'no', child: Text('No')),
+            DropdownMenuItem(value: 'yes', child: Text('Yes')),
+          ],
+          onChanged: (v) {
+            if (v != null) setState(() => d.madeForKids = v);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _tiktokFields(PlatformPostDetails d) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextFormField(
+          initialValue: d.tiktokTitle,
+          style: GoogleFonts.montserrat(fontSize: 13),
+          decoration: _fieldDecoration('Title', hint: 'Max 90 characters'),
+          onChanged: (v) => d.tiktokTitle = v,
+        ),
+        const SizedBox(height: 10),
+        _captionField(d),
+        const SizedBox(height: 10),
+        DropdownButtonFormField<String>(
+          value: d.tiktokPrivacy,
+          decoration: _fieldDecoration('Who can view'),
+          style: GoogleFonts.montserrat(fontSize: 13, color: Colors.black87),
+          items: const [
+            DropdownMenuItem(
+              value: 'PUBLIC_TO_EVERYONE',
+              child: Text('Everyone'),
+            ),
+            DropdownMenuItem(
+              value: 'FOLLOWER_OF_CREATOR',
+              child: Text('Followers'),
+            ),
+            DropdownMenuItem(
+              value: 'MUTUAL_FOLLOW_FRIENDS',
+              child: Text('Friends'),
+            ),
+            DropdownMenuItem(value: 'SELF_ONLY', child: Text('Only me')),
+          ],
+          onChanged: (v) {
+            if (v != null) setState(() => d.tiktokPrivacy = v);
+          },
+        ),
+        SwitchListTile.adaptive(
+          contentPadding: EdgeInsets.zero,
+          title: Text(
+            'Allow comments',
+            style: GoogleFonts.montserrat(fontSize: 13),
+          ),
+          value: d.tiktokComment,
+          activeColor: _kHeaderPurple,
+          onChanged: (v) => setState(() => d.tiktokComment = v),
+        ),
+        SwitchListTile.adaptive(
+          contentPadding: EdgeInsets.zero,
+          title: Text('Allow duet', style: GoogleFonts.montserrat(fontSize: 13)),
+          value: d.tiktokDuet,
+          activeColor: _kHeaderPurple,
+          onChanged: (v) => setState(() => d.tiktokDuet = v),
+        ),
+        SwitchListTile.adaptive(
+          contentPadding: EdgeInsets.zero,
+          title:
+              Text('Allow stitch', style: GoogleFonts.montserrat(fontSize: 13)),
+          value: d.tiktokStitch,
+          activeColor: _kHeaderPurple,
+          onChanged: (v) => setState(() => d.tiktokStitch = v),
+        ),
+        SwitchListTile.adaptive(
+          contentPadding: EdgeInsets.zero,
+          title: Text(
+            'Branded content',
+            style: GoogleFonts.montserrat(fontSize: 13),
+          ),
+          value: d.tiktokBrandContent,
+          activeColor: _kHeaderPurple,
+          onChanged: (v) => setState(() => d.tiktokBrandContent = v),
+        ),
+        SwitchListTile.adaptive(
+          contentPadding: EdgeInsets.zero,
+          title: Text(
+            'Your brand',
+            style: GoogleFonts.montserrat(fontSize: 13),
+          ),
+          value: d.tiktokBrandOrganic,
+          activeColor: _kHeaderPurple,
+          onChanged: (v) => setState(() => d.tiktokBrandOrganic = v),
+        ),
+        SwitchListTile.adaptive(
+          contentPadding: EdgeInsets.zero,
+          title: Text(
+            'Made with AI',
+            style: GoogleFonts.montserrat(fontSize: 13),
+          ),
+          value: d.tiktokMadeWithAi,
+          activeColor: _kHeaderPurple,
+          onChanged: (v) => setState(() => d.tiktokMadeWithAi = v),
+        ),
+      ],
+    );
+  }
+
+  Widget _instagramFields(PlatformPostDetails d, {required bool autobusOnly}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _captionField(d),
+        if (!autobusOnly) ...[
+          const SizedBox(height: 10),
+          DropdownButtonFormField<String>(
+            value: d.instagramPostType,
+            decoration: _fieldDecoration('Post type'),
+            style: GoogleFonts.montserrat(fontSize: 13, color: Colors.black87),
+            items: const [
+              DropdownMenuItem(value: 'post', child: Text('Feed / Reel')),
+              DropdownMenuItem(value: 'story', child: Text('Story')),
+            ],
+            onChanged: (v) {
+              if (v != null) setState(() => d.instagramPostType = v);
+            },
+          ),
+          const SizedBox(height: 10),
+          TextFormField(
+            initialValue: d.instagramCollaboratorsCsv,
+            style: GoogleFonts.montserrat(fontSize: 13),
+            decoration: _fieldDecoration(
+              'Collaborators',
+              hint: 'Usernames, comma-separated',
+            ),
+            onChanged: (v) => d.instagramCollaboratorsCsv = v,
+          ),
+        ] else ...[
+          const SizedBox(height: 8),
+          Text(
+            'Autobus Instagram publishes caption + media only.',
+            style: GoogleFonts.montserrat(fontSize: 11, color: Colors.black45),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _genericFields(PlatformPostDetails d) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _captionField(d),
+        const SizedBox(height: 8),
+        Text(
+          'This channel uses caption and media. Extra options are not required.',
+          style: GoogleFonts.montserrat(fontSize: 11, color: Colors.black45),
+        ),
+      ],
+    );
+  }
+
+  Widget _outletCard({
+    required String id,
+    required String label,
+    required String? subtitle,
+    required IconData icon,
+    required Color color,
+    required PlatformDetailsKind kind,
+    required bool autobusIg,
+  }) {
+    final expanded = _expanded[id] ?? true;
+    final d = _detailsFor(id);
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        children: [
+          InkWell(
+            onTap: () => setState(() => _expanded[id] = !expanded),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              child: Row(
+                children: [
+                  Icon(icon, size: 18, color: color),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          label,
+                          style: GoogleFonts.montserrat(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (subtitle != null && subtitle.isNotEmpty)
+                          Text(
+                            subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.montserrat(
+                              fontSize: 11,
+                              color: Colors.black45,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    expanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    color: Colors.black45,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (expanded)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 14),
+              child: kind == PlatformDetailsKind.youtube
+                  ? _youtubeFields(d)
+                  : kind == PlatformDetailsKind.tiktok
+                      ? _tiktokFields(d)
+                      : kind == PlatformDetailsKind.instagram
+                          ? _instagramFields(d, autobusOnly: autobusIg)
+                          : _genericFields(d),
+            ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cards = <Widget>[];
+    for (final p in _selectedPostiz) {
+      final outlet = _outletFor(p);
+      final label = outlet?.label ??
+          (p.identifier.isNotEmpty ? p.identifier : 'Channel');
+      final accountName = p.name.trim().isNotEmpty
+          ? p.name.trim()
+          : (p.profile?.trim() ?? '');
+      final kind = platformDetailsKindFor(p.identifier);
+      final autobusIg = p.id.startsWith(_kAutobusIgPrefix);
+      cards.add(
+        _outletCard(
+          id: p.id,
+          label: label,
+          subtitle: accountName.isNotEmpty ? accountName : null,
+          icon: kind == PlatformDetailsKind.youtube
+              ? Icons.play_circle_fill
+              : kind == PlatformDetailsKind.tiktok
+                  ? Icons.music_note
+                  : kind == PlatformDetailsKind.instagram
+                      ? Icons.camera_alt
+                      : Icons.public,
+          color: outlet?.iconColor ?? _kPurple,
+          kind: kind,
+          autobusIg: autobusIg,
+        ),
+      );
+    }
+    if (!widget.usePostiz) {
+      for (final acct in _selectedBlotato) {
+        final id = (acct['id'] ?? '').toString();
+        if (id.isEmpty) continue;
+        cards.add(
+          _outletCard(
+            id: id,
+            label: (acct['platform'] ?? 'Account').toString(),
+            subtitle: (acct['account_name'] ?? '').toString().trim(),
+            icon: Icons.link,
+            color: _kPurple,
+            kind: PlatformDetailsKind.generic,
+            autobusIg: false,
+          ),
+        );
+      }
+    }
+
+    return _MarketingScaffold(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Post Details',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.montserrat(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Add titles, captions, and privacy settings for each platform',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.montserrat(
+              fontSize: 12,
+              color: Colors.black45,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: ListView.separated(
+              itemCount: cards.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (_, i) => cards[i],
+            ),
+          ),
+          const SizedBox(height: 12),
+          _DarkButton(
+            label: _publishing ? 'Publishing…' : 'Publish',
+            onTap: _publishing ? null : _publish,
           ),
           const SizedBox(height: 20),
         ],
@@ -2671,11 +3199,33 @@ class _SelectOutletPageState extends State<_SelectOutletPage> {
 
   Future<void> _publish() async {
     final selectedIds = widget.campaign.selectedOutlets.toList();
-    final textContent = widget.campaign.contents
-        .where((c) => c.type == MarketingContentType.text)
-        .map((c) => c.manualText ?? c.generatedResult ?? '')
-        .where((s) => s.isNotEmpty)
-        .join('\n\n');
+    if (selectedIds.isEmpty || _publishing) return;
+
+    for (final p in _selectedPostiz) {
+      if (p.identifier.toLowerCase() != 'youtube') continue;
+      if (p.id.startsWith(_kAutobusIgPrefix)) continue;
+      final d = _detailsFor(p.id);
+      final title = d.youtubeTitle.trim().isNotEmpty
+          ? d.youtubeTitle.trim()
+          : PlatformPostDetails.fromCampaignCaption(d.caption).youtubeTitle;
+      if (title.trim().length < 2) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'YouTube needs a title (at least 2 characters).',
+              style: GoogleFonts.montserrat(fontSize: 13),
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+      d.youtubeTitle = title;
+    }
+
+    setState(() => _publishing = true);
+
+    final textContent = widget.campaign.campaignCaption;
 
     final mediaUrls = <String>[];
     for (final c in widget.campaign.contents) {
@@ -2703,9 +3253,7 @@ class _SelectOutletPageState extends State<_SelectOutletPage> {
             mediaUrls.add(url);
             continue;
           }
-        } catch (_) {
-          // Fall through to bytes upload if available.
-        }
+        } catch (_) {}
       }
 
       final bytes = c.generatedBytes;
@@ -2721,23 +3269,48 @@ class _SelectOutletPageState extends State<_SelectOutletPage> {
             filename: filename,
           );
           mediaUrls.add(url);
-        } catch (_) {
-          // Skip media that could not be uploaded.
-        }
+        } catch (_) {}
       }
     }
 
-    final scheduleTime = widget.campaign.scheduledDate
-        ?.toUtc()
-        .toIso8601String();
-
-    final canPostiz = _usePostiz;
-    final canBlotato = _useBlotato;
+    final scheduleTime =
+        widget.campaign.scheduledDate?.toUtc().toIso8601String();
 
     try {
-      if (canPostiz) {
-        final selected = _postizIntegrations
-            .where((p) => selectedIds.contains(p.id))
+      final igIds = selectedIds
+          .where((id) => id.startsWith(_kAutobusIgPrefix))
+          .map((id) => id.substring(_kAutobusIgPrefix.length))
+          .where((id) => id.isNotEmpty)
+          .toList();
+      final postizIds =
+          selectedIds.where((id) => !id.startsWith(_kAutobusIgPrefix)).toList();
+
+      var publishedCount = 0;
+
+      if (igIds.isNotEmpty) {
+        if (mediaUrls.isEmpty) {
+          throw Exception(
+            'Instagram needs at least one uploaded image or video URL.',
+          );
+        }
+        for (final accountId in igIds) {
+          final outletKey = '$_kAutobusIgPrefix$accountId';
+          final details = widget.campaign.outletDetails[outletKey];
+          final caption = (details?.caption.trim().isNotEmpty == true)
+              ? details!.caption.trim()
+              : textContent;
+          await _apiService.publishInstagramPost(
+            accountId: accountId,
+            caption: caption,
+            mediaUrls: mediaUrls,
+          );
+          publishedCount++;
+        }
+      }
+
+      if (postizIds.isNotEmpty && widget.usePostiz) {
+        final selected = widget.postizIntegrations
+            .where((p) => postizIds.contains(p.id))
             .toList();
         if (selected.isEmpty) {
           throw Exception('No matching Postiz channels for the selection.');
@@ -2748,24 +3321,35 @@ class _SelectOutletPageState extends State<_SelectOutletPage> {
           mediaUrls: mediaUrls,
           postRightAway: widget.campaign.postRightAway,
           scheduledUtc: widget.campaign.scheduledDate,
+          outletDetails: widget.campaign.outletDetails,
         );
         await _apiService.createPostizPost(
           payload,
           agentName: 'digital_marketing',
         );
-      } else if (canBlotato) {
+        publishedCount += selected.length;
+      } else if (postizIds.isNotEmpty && widget.useBlotato) {
+        var blotatoContent = textContent;
+        for (final id in postizIds) {
+          final c = widget.campaign.outletDetails[id]?.caption.trim();
+          if (c != null && c.isNotEmpty) {
+            blotatoContent = c;
+            break;
+          }
+        }
         await _apiService.publishSocialPost(
-          accountIds: selectedIds,
-          content: textContent,
+          accountIds: postizIds,
+          content: blotatoContent,
           mediaUrls: mediaUrls,
           scheduleTime: scheduleTime,
         );
-      } else {
+        publishedCount += postizIds.length;
+      } else if (igIds.isEmpty) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Connect an outlet in Marketing → Link Social Media (Postiz) or link a social account, then try again.',
+              'Connect an outlet in Marketing → Link Social Media, then try again.',
               style: GoogleFonts.montserrat(color: Colors.white, fontSize: 13),
             ),
             backgroundColor: Colors.orange.shade800,
@@ -2779,17 +3363,16 @@ class _SelectOutletPageState extends State<_SelectOutletPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            canPostiz
-                ? (widget.campaign.postRightAway
-                    ? 'Posted via Postiz to ${selectedIds.length} channel(s)'
-                    : 'Scheduled in Postiz for ${selectedIds.length} channel(s)')
-                : 'Published successfully to ${selectedIds.length} account(s)',
+            widget.campaign.postRightAway
+                ? 'Published to $publishedCount channel(s)'
+                : 'Scheduled / published for $publishedCount channel(s)',
             style: GoogleFonts.montserrat(color: Colors.white),
           ),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
         ),
       );
+      Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -2802,6 +3385,8 @@ class _SelectOutletPageState extends State<_SelectOutletPage> {
           behavior: SnackBarBehavior.floating,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _publishing = false);
     }
   }
 }

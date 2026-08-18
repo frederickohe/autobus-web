@@ -1,5 +1,6 @@
 import 'package:autobus/barrel.dart';
 import 'package:autobus/features/integrations/webview_url_resolver.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 /// Opens Postiz or Chatwoot using credentials returned by the Autobus API,
@@ -251,6 +252,51 @@ fetch('/api/auth/login', {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// Opens provider OAuth / Meta signup in the device browser.
+/// In-app WebViews are blocked by Facebook, Instagram, TikTok, and Google.
+Future<void> openPlatformConnectInBrowser(
+  BuildContext context, {
+  required String label,
+  required Future<PlatformEmbedSession> Function() fetchSession,
+}) async {
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    final session = await fetchSession();
+    if (!context.mounted) return;
+    final raw = session.authorizationUrl.trim().isNotEmpty
+        ? session.authorizationUrl.trim()
+        : (session.postizLoginPageUrl ?? '').trim();
+    final uri = Uri.tryParse(raw);
+    if (uri == null || !uri.hasScheme) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Server did not return a valid $label link.'),
+        ),
+      );
+      return;
+    }
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not open the $label signup page.')),
+      );
+      return;
+    }
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          'Finish $label signup in your browser, then return here and pull to refresh.',
+        ),
+      ),
+    );
+  } catch (e) {
+    if (!context.mounted) return;
+    messenger.showSnackBar(
+      SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
     );
   }
 }

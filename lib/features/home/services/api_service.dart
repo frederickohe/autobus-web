@@ -1773,6 +1773,45 @@ class ApiService {
     return [];
   }
 
+  /// POST /api/v1/instagram/posts — publish via Autobus Instagram Business Login.
+  Future<Map<String, dynamic>> publishInstagramPost({
+    required String accountId,
+    required String caption,
+    required List<String> mediaUrls,
+  }) async {
+    final id = accountId.trim();
+    if (id.isEmpty) {
+      throw Exception('Missing Instagram account id');
+    }
+    final urls =
+        mediaUrls.map((u) => u.trim()).where((u) => u.isNotEmpty).toList();
+    if (urls.isEmpty) {
+      throw Exception('Instagram requires at least one media URL');
+    }
+    final response = await httpClient.post(
+      Uri.parse('$baseUrl/instagram/posts'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'account_id': id,
+        'caption': caption,
+        'media_urls': urls,
+      }),
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final data = jsonDecode(response.body);
+      if (data is Map<String, dynamic>) return data;
+      if (data is Map) return Map<String, dynamic>.from(data);
+      return {'ok': true, 'value': data};
+    }
+    if (response.statusCode == 401) {
+      throw Exception('Session expired');
+    }
+    throw Exception(
+      _httpDetailMessage(response.body) ??
+          'Instagram publish failed (${response.statusCode})',
+    );
+  }
+
   /// GET /api/v1/sms-sender-ids — current user's SMS sender ID registrations.
   Future<List<Map<String, dynamic>>> listSmsSenderIds() async {
     final response = await httpClient.get(
