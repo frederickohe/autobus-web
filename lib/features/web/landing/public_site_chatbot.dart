@@ -224,7 +224,9 @@ class _PublicSiteChatbotState extends State<PublicSiteChatbot> {
       if (!mounted) return;
       setState(() {
         _busy = false;
-        _messages.add(reply);
+        if (reply.text.trim().isNotEmpty) {
+          _messages.add(reply);
+        }
       });
       _scrollToBottom();
     } catch (e) {
